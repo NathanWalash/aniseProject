@@ -1,4 +1,4 @@
-# AuthApp
+# anise
 
 A React Native Expo application that implements persistent email/password authentication with Firebase and user profiles stored in Cloud Firestore. Provides a Login/Signup flow, password reset, and account settings screens.
 
@@ -15,7 +15,7 @@ A React Native Expo application that implements persistent email/password authen
 
    ```bash
    git clone <YOUR_REPO_URL>
-   cd AuthApp
+   cd anise
    ```
 
 2. **Install dependencies**
@@ -66,8 +66,8 @@ A React Native Expo application that implements persistent email/password authen
    import 'dotenv/config';
    export default {
      expo: {
-       name: 'AuthApp',
-       slug: 'AuthApp',
+       name: 'anise',
+       slug: 'anise',
        extra: {
          firebaseApiKey: process.env.FIREBASE_API_KEY,
          firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
@@ -93,7 +93,7 @@ A React Native Expo application that implements persistent email/password authen
 ## Project Structure
 
 ```
-AuthApp/
+anise/
 ├── src/
 │   ├── firebase/
 │   │   └── config.ts             # Firebase initialization (Auth & Firestore)
