@@ -2,30 +2,9 @@ import React from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import type { Template } from './CreateWizard';
 
-type Props = { onSelect: (template: Template) => void; step?: number };
+const mockTemplates: Template[] = require('../../../templates/aniseTemplates.json');
 
-const mockTemplates: Template[] = [
-  {
-    templateName: 'Claims DAO',
-    templateDescription: 'A DAO with membership and claim voting',
-    modules: ['MemberModule', 'ClaimVotingModule'],
-    initParamsSchema: [
-      { admin: 'address' },
-      { quorum: 'uint256' },
-    ],
-    templateId: 'claims-voting-v1',
-  },
-  {
-    templateName: 'P2P Insurance',
-    templateDescription: 'Peer-to-peer insurance pool',
-    modules: ['InsuranceModule'],
-    initParamsSchema: [
-      { admin: 'address' },
-      { premium: 'uint256' },
-    ],
-    templateId: 'p2p-insurance-v1',
-  },
-];
+type Props = { onSelect: (template: Template) => void; step?: number };
 
 export default function Step1TemplateSelect({ onSelect }: Props) {
   return (
