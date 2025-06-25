@@ -1,11 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import HomeScreen from './screens/HomeScreen';
-import Page1Screen from './screens/Page1Screen';
-import Page2Screen from './screens/Page2Screen';
-import Page3Screen from './screens/Page3Screen';
-import Page4Screen from './screens/Page4Screen';
+import ExploreScreen from './screens/Screen1/Screen1Screen';
+import CreateScreen from './screens/Screen2/Screen2Screen';
+import NotificationsScreen from './screens/Screen3/Screen3Screen';
+import ProfileScreen from './screens/Screen4/Screen4Screen';
+import MyAnisesScreen from './screens/Screen5/Screen5Screen';
 import MyAnisesIcon from '../assets/icons/myanises_icon.svg';
 import ExploreIcon from '../assets/icons/explore_icon.svg';
 import CreateIcon from '../assets/icons/create_icon.svg';
@@ -34,12 +34,12 @@ export default function Navigation({ user }: { user: any }) {
         })}
       >
         <Tab.Screen name="MyAnises" options={{ title: 'MyAnises' }}>
-          {() => <HomeScreen user={user} />}
+          {() => <MyAnisesScreen user={user} />}
         </Tab.Screen>
-        <Tab.Screen name="Explore" component={Page1Screen} />
-        <Tab.Screen name="Create" component={Page2Screen} />
-        <Tab.Screen name="Notifications" component={Page3Screen} />
-        <Tab.Screen name="Profile" component={Page4Screen} />
+        <Tab.Screen name="Explore" component={ExploreScreen} />
+        <Tab.Screen name="Create" component={CreateScreen} />
+        <Tab.Screen name="Notifications" component={NotificationsScreen} />
+        <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );

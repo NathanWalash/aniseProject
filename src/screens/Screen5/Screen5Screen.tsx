@@ -8,9 +8,9 @@ import {
   View,
 } from 'react-native';
 import { signOut, User } from 'firebase/auth';
-import { auth, db } from '../firebase/config';
+import { auth, db } from '../../firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
-import AccountSettingsScreen from './AccountSettingsScreen';
+import AccountSettingsScreen from '../AccountSettingsScreen';
 
 interface Profile {
   firstName: string;
@@ -21,7 +21,7 @@ interface Profile {
 
 type Props = { user: User };
 
-export default function HomeScreen({ user }: Props) {
+export default function MyAnisesScreen({ user }: Props) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
