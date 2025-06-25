@@ -6,6 +6,12 @@ import Page1Screen from './screens/Page1Screen';
 import Page2Screen from './screens/Page2Screen';
 import Page3Screen from './screens/Page3Screen';
 import Page4Screen from './screens/Page4Screen';
+import MyAnisesIcon from '../assets/icons/myanises_icon.svg';
+import ExploreIcon from '../assets/icons/explore_icon.svg';
+import CreateIcon from '../assets/icons/create_icon.svg';
+import NotificationsIcon from '../assets/icons/notifications_icon.svg';
+import ProfileIcon from '../assets/icons/profile_icon.svg';
+import { SvgProps } from 'react-native-svg';
 
 const Tab = createBottomTabNavigator();
 
@@ -13,14 +19,27 @@ const Tab = createBottomTabNavigator();
 export default function Navigation({ user }: { user: any }) {
   return (
     <NavigationContainer>
-      <Tab.Navigator>
-        <Tab.Screen name="Home">
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          tabBarIcon: ({ color, size }) => {
+            let IconComponent: React.FC<SvgProps> = MyAnisesIcon;
+            if (route.name === 'Explore') IconComponent = ExploreIcon;
+            else if (route.name === 'Create') IconComponent = CreateIcon;
+            else if (route.name === 'Notifications') IconComponent = NotificationsIcon;
+            else if (route.name === 'Profile') IconComponent = ProfileIcon;
+            return <IconComponent width={size} height={size} stroke={color} />;
+          },
+          tabBarActiveTintColor: '#7B68EE',
+          tabBarInactiveTintColor: 'gray',
+        })}
+      >
+        <Tab.Screen name="MyAnises" options={{ title: 'MyAnises' }}>
           {() => <HomeScreen user={user} />}
         </Tab.Screen>
-        <Tab.Screen name="Page1" component={Page1Screen} />
-        <Tab.Screen name="Page2" component={Page2Screen} />
-        <Tab.Screen name="Page3" component={Page3Screen} />
-        <Tab.Screen name="Page4" component={Page4Screen} />
+        <Tab.Screen name="Explore" component={Page1Screen} />
+        <Tab.Screen name="Create" component={Page2Screen} />
+        <Tab.Screen name="Notifications" component={Page3Screen} />
+        <Tab.Screen name="Profile" component={Page4Screen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
