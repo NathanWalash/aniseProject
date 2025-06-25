@@ -4,10 +4,10 @@ import "./global.css";
 import { SafeAreaView, Text, StyleSheet } from 'react-native';
 import { auth } from './src/firebase/config';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import LandingScreen from './src/screens/LandingScreen';
-import LoginScreen from './src/screens/LoginScreen';
-import SignupScreen from './src/screens/SignupScreen';
-import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
+import LandingScreen from './src/screens/landing/LandingScreen';
+import LoginScreen from './src/screens/auth/LoginScreen';
+import SignupScreen from './src/screens/auth/SignupScreen';
+import ResetPasswordScreen from './src/screens/auth/ResetPasswordScreen';
 import Navigation from './src/Navigation';
 
 export default function App() {

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import { auth } from '../../firebase/config';
 
 type Props = {
   onCreateAccount: () => void;
@@ -94,7 +94,7 @@ export default function LoginScreen({
           </TouchableOpacity>
           <TouchableOpacity onPress={onCreateAccount}>
             <Text className="text-sm text-brand-500 text-center">
-              Don’t have an account? Sign Up
+              Don't have an account? Sign Up
             </Text>
           </TouchableOpacity>
         </View>

@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../firebase/config';
+import { auth } from '../../firebase/config';
 
 type Props = { onBack: () => void };
 
