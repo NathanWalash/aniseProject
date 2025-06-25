@@ -62,17 +62,25 @@ function WizardProgress({ step }: { step: number }) {
 }
 
 export default function CreateWizard() {
-  const [state, setState] = useState<CreateWizardState>({
-    step: 1,
-    selectedTemplate: null,
-    config: {},
-  });
+  const [step, setStep] = useState(1);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [config, setConfig] = useState<Record<string, any>>({});
   const [showInfo, setShowInfo] = useState(false);
 
-  const goToStep = (step: number) => setState(s => ({ ...s, step }));
-  const setTemplate = (template: Template) => setState(s => ({ ...s, selectedTemplate: template, step: 2 }));
-  const setConfig = (config: Record<string, any>) => setState(s => ({ ...s, config, step: 3 }));
-  const reset = () => setState({ step: 1, selectedTemplate: null, config: {} });
+  const goToStep = (s: number) => setStep(s);
+  const handleSelectTemplate = (template: Template) => {
+    setSelectedTemplate(template);
+    setStep(2);
+  };
+  const handleConfigNext = (cfg: Record<string, any>) => {
+    setConfig(cfg);
+    setStep(3);
+  };
+  const reset = () => {
+    setStep(1);
+    setSelectedTemplate(null);
+    setConfig({});
+  };
 
   return (
     <View style={{ flex: 1, width: '100%', maxWidth: 400, alignSelf: 'center' }}>
@@ -82,16 +90,36 @@ export default function CreateWizard() {
           <Icon name="information-circle-outline" size={28} color="#2563eb" />
         </TouchableOpacity>
       </View>
-      <WizardProgress step={state.step} />
-      {state.step === 1 && <Step1TemplateSelect onSelect={setTemplate} step={state.step} />}
-      {state.step === 2 && state.selectedTemplate && (
-        <Step2Configure template={state.selectedTemplate} onNext={setConfig} onBack={() => goToStep(1)} step={state.step} />
+      <WizardProgress step={step} />
+      {step === 1 && (
+        <Step1TemplateSelect
+          onSelect={handleSelectTemplate}
+          step={step}
+          selectedTemplate={selectedTemplate}
+          setSelectedTemplate={setSelectedTemplate}
+        />
       )}
-      {state.step === 3 && state.selectedTemplate && (
-        <Step3Review template={state.selectedTemplate} config={state.config} onBack={() => goToStep(2)} onReset={reset} step={state.step} />
+      {step === 2 && selectedTemplate && (
+        <Step2Configure
+          template={selectedTemplate}
+          config={config}
+          setConfig={setConfig}
+          onNext={handleConfigNext}
+          onBack={() => goToStep(1)}
+          step={step}
+        />
+      )}
+      {step === 3 && selectedTemplate && (
+        <Step3Review
+          template={selectedTemplate}
+          config={config}
+          onBack={() => goToStep(2)}
+          onReset={reset}
+          step={step}
+        />
       )}
       {/* Splash Modal */}
-      <Modal visible={showInfo} animationType="slide" onRequestClose={() => setShowInfo(false)}>
+      <Modal visible={showInfo} animationType="slide" onRequestClose={() => setShowInfo(false)} presentationStyle="fullScreen">
         <CreateSplashScreens onDone={() => setShowInfo(false)} />
       </Modal>
     </View>

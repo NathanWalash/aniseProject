@@ -1,27 +1,67 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import type { Template } from './CreateWizard';
 
-const mockTemplates: Template[] = require('../../../templates/aniseTemplates.json');
+const allTemplates: Template[] = require('../../../templates/aniseTemplates.json');
 
-type Props = { onSelect: (template: Template) => void; step?: number };
+type Props = {
+  onSelect: (template: Template) => void;
+  step?: number;
+  selectedTemplate: Template | null;
+  setSelectedTemplate: (t: Template | null) => void;
+};
 
-export default function Step1TemplateSelect({ onSelect }: Props) {
+export default function Step1TemplateSelect({ onSelect, step = 1, selectedTemplate, setSelectedTemplate }: Props) {
+  const [query, setQuery] = useState('');
+  const filtered = allTemplates.filter(t =>
+    t.templateName.toLowerCase().includes(query.toLowerCase()) ||
+    t.templateDescription.toLowerCase().includes(query.toLowerCase())
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        <Text className="text-2xl font-bold mb-4">Choose Your Anise Template</Text>
-        {mockTemplates.map(t => (
+      <View style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+          <TextInput
+            placeholder="Search for template"
+            value={query}
+            onChangeText={setQuery}
+            className="border border-gray-300 rounded px-3 py-2 mb-4"
+          />
+          <Text className="text-2xl font-bold mb-4">Choose Your Anise Template</Text>
+          {filtered.map(t => (
+            <TouchableOpacity
+              key={t.templateId}
+              className={`bg-gray-100 rounded-xl p-4 mb-4 ${selectedTemplate?.templateId === t.templateId ? 'border-2 border-blue-500' : ''}`}
+              onPress={() => setSelectedTemplate(t)}
+            >
+              <Text className="text-lg font-semibold mb-1">{t.templateName}</Text>
+              <Text className="text-gray-600">{t.templateDescription}</Text>
+            </TouchableOpacity>
+          ))}
+          {filtered.length === 0 && (
+            <Text className="text-gray-400 text-center mt-8">No templates found.</Text>
+          )}
+        </ScrollView>
+        {/* Progress and Next Button */}
+        <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: 24, paddingHorizontal: 16, backgroundColor: '#fff' }}>
+          <View style={{ alignItems: 'center', marginBottom: 8 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 4 }}>
+              {[0, 1, 2].map(i => (
+                <View key={i} style={{ width: 8, height: 8, borderRadius: 4, marginHorizontal: 4, backgroundColor: i === 0 ? '#2563eb' : '#d1d5db' }} />
+              ))}
+            </View>
+            <Text style={{ color: '#6b7280', fontSize: 12 }}>Step 1 of 3</Text>
+          </View>
           <TouchableOpacity
-            key={t.templateId}
-            className="bg-gray-100 rounded-xl p-4 mb-4"
-            onPress={() => onSelect(t)}
+            style={{ width: '100%', paddingVertical: 14, borderRadius: 8, backgroundColor: selectedTemplate ? '#2563eb' : '#d1d5db' }}
+            disabled={!selectedTemplate}
+            onPress={() => selectedTemplate && onSelect(selectedTemplate)}
           >
-            <Text className="text-lg font-semibold mb-1">{t.templateName}</Text>
-            <Text className="text-gray-600">{t.templateDescription}</Text>
+            <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>Next Step</Text>
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+        </View>
+      </View>
     </SafeAreaView>
   );
 } 
