@@ -1,10 +1,12 @@
-import React from 'react';
-import { View, Text, SafeAreaView } from 'react-native';
+import React, { useState } from 'react';
+import CreateWizard from './wizard/CreateWizard';
+import CreateSplashScreens from './splash/CreateSplashScreens';
 
 export default function CreateScreen() {
-  return (
-    <SafeAreaView className="flex-1 justify-center items-center bg-white">
-      <Text className="text-2xl font-bold">Create</Text>
-    </SafeAreaView>
-  );
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <CreateSplashScreens onDone={() => setShowSplash(false)} />;
+  }
+  return <CreateWizard />;
 } 
