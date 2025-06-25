@@ -1,11 +1,11 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import ExploreScreen from './screens/Screen1/Screen1Screen';
-import CreateScreen from './screens/Screen2/Screen2Screen';
-import NotificationsScreen from './screens/Screen3/Screen3Screen';
-import ProfileScreen from './screens/Screen4/Screen4Screen';
-import MyAnisesScreen from './screens/Screen5/Screen5Screen';
+import MyAnisesScreen from './screens/myanises/MyAnisesScreen';
+import ExploreScreen from './screens/explore/ExploreScreen';
+import CreateScreen from './screens/create/CreateScreen';
+import NotificationsScreen from './screens/notifications/NotificationsScreen';
+import ProfileScreen from './screens/profile/ProfileScreen';
 import MyAnisesIcon from '../assets/icons/myanises_icon.svg';
 import ExploreIcon from '../assets/icons/explore_icon.svg';
 import CreateIcon from '../assets/icons/create_icon.svg';
@@ -33,13 +33,13 @@ export default function Navigation({ user }: { user: any }) {
           tabBarInactiveTintColor: 'gray',
         })}
       >
-        <Tab.Screen name="MyAnises" options={{ title: 'MyAnises' }}>
-          {() => <MyAnisesScreen user={user} />}
-        </Tab.Screen>
+        <Tab.Screen name="MyAnises" component={MyAnisesScreen} />
         <Tab.Screen name="Explore" component={ExploreScreen} />
         <Tab.Screen name="Create" component={CreateScreen} />
         <Tab.Screen name="Notifications" component={NotificationsScreen} />
-        <Tab.Screen name="Profile" component={ProfileScreen} />
+        <Tab.Screen name="Profile">
+          {() => <ProfileScreen user={user} />}
+        </Tab.Screen>
       </Tab.Navigator>
     </NavigationContainer>
   );
