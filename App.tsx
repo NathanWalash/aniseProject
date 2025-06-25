@@ -8,7 +8,7 @@ import LandingScreen from './src/screens/LandingScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
-import HomeScreen from './src/screens/HomeScreen';
+import Navigation from './src/Navigation';
 
 export default function App() {
   const [user, setUser]         = useState<User | null>(null);
@@ -34,7 +34,7 @@ export default function App() {
   }
 
   if (user) {
-    return <HomeScreen user={user} />;
+    return <Navigation user={user} />;
   }
 
   if (mode === 'landing') {

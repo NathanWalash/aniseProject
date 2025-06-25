@@ -3,6 +3,7 @@ import { initializeApp } from 'firebase/app';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { getFirestore } from 'firebase/firestore';
+import type { Auth } from 'firebase/auth';
 
 const {
   firebaseApiKey,
@@ -11,7 +12,7 @@ const {
   firebaseStorageBucket,
   firebaseMessagingSenderId,
   firebaseAppId,
-  walletConnectProjectId,  // if you’ve added this to extra
+  walletConnectProjectId,  // if you've added this to extra
 } = (Constants.expoConfig?.extra ?? {}) as Record<string, string>;
 
 const firebaseConfig = {
@@ -26,7 +27,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // -- Auth setup with conditional persistence ----------------
-let auth;
+let auth: Auth;
 if (Platform.OS === 'web') {
   // On web, use the default getAuth
   // (no React Native AsyncStorage persistence)
