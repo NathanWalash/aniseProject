@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Modal, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import Step1TemplateSelect from './Step1TemplateSelect';
 import Step2Configure from './Step2Configure';
 import Step3Review from './Step3Review';
+import CreateSplashScreens from '../splash/CreateSplashScreens';
 
 export type Template = {
   templateName: string;
@@ -65,6 +67,7 @@ export default function CreateWizard() {
     selectedTemplate: null,
     config: {},
   });
+  const [showInfo, setShowInfo] = useState(false);
 
   const goToStep = (step: number) => setState(s => ({ ...s, step }));
   const setTemplate = (template: Template) => setState(s => ({ ...s, selectedTemplate: template, step: 2 }));
@@ -73,6 +76,12 @@ export default function CreateWizard() {
 
   return (
     <View style={{ flex: 1, width: '100%', maxWidth: 400, alignSelf: 'center' }}>
+      {/* Info Button */}
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 8, marginRight: 8 }}>
+        <TouchableOpacity onPress={() => setShowInfo(true)}>
+          <Icon name="information-circle-outline" size={28} color="#2563eb" />
+        </TouchableOpacity>
+      </View>
       <WizardProgress step={state.step} />
       {state.step === 1 && <Step1TemplateSelect onSelect={setTemplate} step={state.step} />}
       {state.step === 2 && state.selectedTemplate && (
@@ -81,6 +90,10 @@ export default function CreateWizard() {
       {state.step === 3 && state.selectedTemplate && (
         <Step3Review template={state.selectedTemplate} config={state.config} onBack={() => goToStep(2)} onReset={reset} step={state.step} />
       )}
+      {/* Splash Modal */}
+      <Modal visible={showInfo} animationType="slide" onRequestClose={() => setShowInfo(false)}>
+        <CreateSplashScreens onDone={() => setShowInfo(false)} />
+      </Modal>
     </View>
   );
 } 
