@@ -50,11 +50,12 @@ export default function WelcomeSplashScreens({ onDone }: Props) {
             <View key={i} className="flex-1 justify-center items-center w-full" style={{ width }}>
               <Text className="text-3xl font-bold mb-4 text-white">{item.title}</Text>
               <Text className="text-lg text-gray-100 mb-8 text-center">{item.desc}</Text>
-              {/* Only show Get Started button on last page */}
-              {isLast && i === splashData.length - 1 && (
+              {/* Get Started button: only in last page, but always rendered with opacity */}
+              {i === splashData.length - 1 && (
                 <TouchableOpacity
                   onPress={onDone}
-                  style={{ backgroundColor: '#fff', borderRadius: 24, paddingVertical: 14, paddingHorizontal: 36, marginTop: 32 }}
+                  style={{ backgroundColor: '#fff', borderRadius: 24, paddingVertical: 14, paddingHorizontal: 36, marginTop: 32, opacity: idx === splashData.length - 1 ? 1 : 0 }}
+                  disabled={idx !== splashData.length - 1}
                 >
                   <Text style={{ color: '#7B68EE', fontWeight: 'bold', fontSize: 18 }}>Get Started</Text>
                 </TouchableOpacity>
