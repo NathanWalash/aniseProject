@@ -91,7 +91,7 @@ export default function CreateWizard() {
         <Step3Review template={state.selectedTemplate} config={state.config} onBack={() => goToStep(2)} onReset={reset} step={state.step} />
       )}
       {/* Splash Modal */}
-      <Modal visible={showInfo} animationType="slide" onRequestClose={() => setShowInfo(false)}>
+      <Modal visible={showInfo} animationType="slide" onRequestClose={() => setShowInfo(false)} presentationStyle="fullScreen">
         <CreateSplashScreens onDone={() => setShowInfo(false)} />
       </Modal>
     </View>
