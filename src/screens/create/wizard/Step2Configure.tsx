@@ -16,6 +16,11 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
     setConfig({ ...config, [key]: value });
   };
 
+  const allFilled = template.initParamsSchema.every(param => {
+    const key = Object.keys(param)[0];
+    return config[key] && config[key].trim() !== '';
+  });
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View style={{ flex: 1 }}>
@@ -54,8 +59,9 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
               <Text style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>Previous Step</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={{ flex: 1, marginLeft: 8, backgroundColor: '#2563eb', borderRadius: 8, paddingVertical: 14 }}
+              style={{ flex: 1, marginLeft: 8, backgroundColor: allFilled ? '#2563eb' : '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
               onPress={() => onNext(config)}
+              disabled={!allFilled}
             >
               <Text style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 16, color: '#fff' }}>Next Step</Text>
             </TouchableOpacity>
