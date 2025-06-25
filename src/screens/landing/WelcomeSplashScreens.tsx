@@ -8,12 +8,13 @@ const { width } = Dimensions.get('window');
 type Props = { onDone: () => void };
 
 const splashData = [
-  { title: 'Splash Screen 1', desc: 'This is splash screen 1.' },
-  { title: 'Splash Screen 2', desc: 'This is splash screen 2.' },
-  { title: 'Splash Screen 3', desc: 'This is splash screen 3.' },
+  { title: 'Welcome 1', desc: 'This is the first welcome splash screen.' },
+  { title: 'Welcome 2', desc: 'This is the second welcome splash screen.' },
+  { title: 'Welcome 3', desc: 'This is the third welcome splash screen.' },
+  { title: 'Welcome 4', desc: 'This is the fourth welcome splash screen.' },
 ];
 
-export default function CreateSplashScreens({ onDone }: Props) {
+export default function WelcomeSplashScreens({ onDone }: Props) {
   const [idx, setIdx] = useState(0);
   const pagerRef = useRef<PagerView>(null);
   const isLast = idx === splashData.length - 1;
@@ -23,7 +24,6 @@ export default function CreateSplashScreens({ onDone }: Props) {
     setIdx(i);
   };
 
-  // Padding for iOS notch/safe area
   const topPad = Platform.OS === 'ios' ? 44 : 24;
 
   return (
@@ -34,7 +34,7 @@ export default function CreateSplashScreens({ onDone }: Props) {
       end={[1, 1]}
     >
       <SafeAreaView className="flex-1 justify-center items-center bg-transparent px-6">
-        {/* Top right close button, with extra padding for iOS notch */}
+        {/* Top right close button */}
         <View style={{ position: 'absolute', top: topPad, right: 0, zIndex: 10, paddingRight: 16 }}>
           <TouchableOpacity onPress={onDone} style={{ padding: 12 }} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
             <Text style={{ fontSize: 28, color: '#fff' }}>&#10005;</Text>

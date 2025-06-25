@@ -9,6 +9,7 @@ import LoginScreen from './src/screens/auth/LoginScreen';
 import SignupScreen from './src/screens/auth/SignupScreen';
 import ResetPasswordScreen from './src/screens/auth/ResetPasswordScreen';
 import Navigation from './src/Navigation';
+import WelcomeSplashScreens from './src/screens/landing/WelcomeSplashScreens';
 
 export default function App() {
   const [user, setUser]         = useState<User | null>(null);
@@ -16,6 +17,7 @@ export default function App() {
   const [mode, setMode]         = useState<
     'landing' | 'login' | 'signup' | 'reset'
   >('landing');
+  const [showWelcome, setShowWelcome] = useState(true);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, usr => {
@@ -31,6 +33,10 @@ export default function App() {
         <Text>Loading…</Text>
       </SafeAreaView>
     );
+  }
+
+  if (!user && showWelcome) {
+    return <WelcomeSplashScreens onDone={() => setShowWelcome(false)} />;
   }
 
   if (user) {
