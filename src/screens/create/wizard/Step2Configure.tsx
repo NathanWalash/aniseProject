@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import type { Template } from './CreateWizard';
 
 type Props = {
   template: Template;
+  config: Record<string, any>;
+  setConfig: (c: Record<string, any>) => void;
   onNext: (config: Record<string, any>) => void;
   onBack: () => void;
   step?: number;
 };
 
-export default function Step2Configure({ template, onNext, onBack, step = 2 }: Props) {
-  const [config, setConfig] = useState<Record<string, any>>({});
-
+export default function Step2Configure({ template, config, setConfig, onNext, onBack, step = 2 }: Props) {
   const handleChange = (key: string, value: string) => {
-    setConfig(c => ({ ...c, [key]: value }));
+    setConfig({ ...config, [key]: value });
   };
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import type { Template } from './CreateWizard';
+import { deployAnise } from './deployAnise';
 
 type Props = {
   template: Template;
@@ -56,7 +57,10 @@ export default function Step3Review({ template, config, onBack, onReset, step = 
             </TouchableOpacity>
             <TouchableOpacity
               style={{ flex: 1, marginLeft: 8, backgroundColor: agreed ? '#2563eb' : '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
-              onPress={onReset}
+              onPress={() => {
+                deployAnise(template, config);
+                onReset();
+              }}
               disabled={!agreed}
             >
               <Text style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 16, color: '#fff' }}>Deploy</Text>
