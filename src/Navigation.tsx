@@ -16,7 +16,7 @@ import { SvgProps } from 'react-native-svg';
 const Tab = createBottomTabNavigator();
 
 // The user prop will be passed from App.tsx
-export default function Navigation({ user }: { user: any }) {
+export default function Navigation({ user, onLogout }: { user: any, onLogout: () => void }) {
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -38,7 +38,7 @@ export default function Navigation({ user }: { user: any }) {
         <Tab.Screen name="Create" component={CreateScreen} />
         <Tab.Screen name="Notifications" component={NotificationsScreen} />
         <Tab.Screen name="Profile">
-          {() => <ProfileScreen user={user} />}
+          {() => <ProfileScreen user={user} onLogout={onLogout} />}
         </Tab.Screen>
       </Tab.Navigator>
     </NavigationContainer>

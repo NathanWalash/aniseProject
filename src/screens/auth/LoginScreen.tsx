@@ -9,17 +9,19 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../firebase/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../utils/api';
 
 type Props = {
   onCreateAccount: () => void;
   onForgotPassword: () => void;
+  onLoginSuccess?: () => void;
 };
 
 export default function LoginScreen({
   onCreateAccount,
   onForgotPassword,
+  onLoginSuccess,
 }: Props) {
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
@@ -30,9 +32,18 @@ export default function LoginScreen({
     setError(null);
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
-    } catch (err) {
-      setError((err as Error).message);
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Login failed');
+      await AsyncStorage.setItem('idToken', data.idToken);
+      await AsyncStorage.setItem('refreshToken', data.refreshToken);
+      if (onLoginSuccess) onLoginSuccess();
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }

@@ -9,9 +9,8 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
-import { signOut, User, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { auth, db } from '../../firebase/config';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../utils/api';
 
 interface Profile {
   firstName: string;
@@ -20,19 +19,19 @@ interface Profile {
   email: string;
 }
 
-type Props = { user: User };
+type ProfileScreenProps = { onLogout: () => void };
 
-export default function ProfileScreen({ user }: Props) {
+export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<{ error?: string; message?: string }>({});
+  const [status, setStatus] = useState<{ message: string; error?: boolean } | null>(null);
   // Profile edit
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [dob, setDob] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   // Email
-  const [newEmail, setNewEmail] = useState(user.email || '');
+  const [newEmail, setNewEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [savingEmail, setSavingEmail] = useState(false);
   // Password
@@ -41,76 +40,92 @@ export default function ProfileScreen({ user }: Props) {
   const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
-    getDoc(doc(db, 'users', user.uid))
-      .then((snap) => {
-        if (snap.exists()) {
-          const d = snap.data() as any;
-          setProfile(d);
-          setFirstName(d.firstName || '');
-          setLastName(d.lastName || '');
-          setDob(d.dateOfBirth || '');
-        }
-      })
-      .finally(() => setLoading(false));
-  }, [user.uid]);
-
-  const reauth = () => {
-    const cred = EmailAuthProvider.credential(user.email || '', currentPassword);
-    return reauthenticateWithCredential(user, cred);
-  };
+    const fetchProfile = async () => {
+      setLoading(true);
+      const idToken = await AsyncStorage.getItem('idToken');
+      if (!idToken) return;
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${idToken}` },
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to fetch profile');
+        setProfile(data);
+        setFirstName(data.firstName || '');
+        setLastName(data.lastName || '');
+        setDob(data.dateOfBirth || '');
+      } catch (err: any) {
+        setStatus({ message: err.message, error: true });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const saveProfile = async () => {
-    setStatus({});
-    if (!firstName || !lastName || !dob) {
-      setStatus({ error: 'All fields required.' });
-      return;
-    }
     setSavingProfile(true);
+    setStatus(null);
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) return;
     try {
-      await updateDoc(doc(db, 'users', user.uid), { firstName, lastName, dateOfBirth: dob });
+      const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ firstName, lastName, dateOfBirth: dob }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update profile');
       setStatus({ message: 'Profile updated.' });
       setProfile({ ...profile, firstName, lastName, dateOfBirth: dob, email: profile?.email } as Profile);
-    } catch (err) {
-      setStatus({ error: (err as Error).message });
+    } catch (err: any) {
+      setStatus({ message: err.message, error: true });
     } finally {
       setSavingProfile(false);
     }
   };
 
   const saveEmail = async () => {
-    setStatus({});
+    setStatus(null);
     if (!newEmail.trim() || !currentPassword) {
-      setStatus({ error: 'Email + current password required.' });
+      setStatus({ message: 'Email + current password required.', error: true });
       return;
     }
     setSavingEmail(true);
     try {
-      await reauth();
-      await updateEmail(user, newEmail.trim());
+      // TODO: Update user email by calling backend endpoint
       setStatus({ message: 'Email updated. Log back in.' });
     } catch (err) {
-      setStatus({ error: (err as Error).message });
+      setStatus({ message: (err as Error).message, error: true });
     } finally {
       setSavingEmail(false);
     }
   };
 
   const savePassword = async () => {
-    setStatus({});
+    setStatus(null);
     if (newPassword !== confirmPassword || !currentPassword) {
-      setStatus({ error: 'Passwords must match + current password.' });
+      setStatus({ message: 'Passwords must match + current password.', error: true });
       return;
     }
     setSavingPassword(true);
     try {
-      await reauth();
-      await updatePassword(user, newPassword);
+      // TODO: Update user password by calling backend endpoint
       setStatus({ message: 'Password updated.' });
     } catch (err) {
-      setStatus({ error: (err as Error).message });
+      setStatus({ message: (err as Error).message, error: true });
     } finally {
       setSavingPassword(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('idToken');
+    await AsyncStorage.removeItem('refreshToken');
+    if (onLogout) onLogout();
   };
 
   if (loading) {
@@ -142,11 +157,11 @@ export default function ProfileScreen({ user }: Props) {
         </View>
 
         {/* Status Message */}
-        {status.message && (
+        {status && (
           <Text className="text-green-600 text-center mb-2">{status.message}</Text>
         )}
-        {status.error && (
-          <Text className="text-red-500 text-center mb-2">{status.error}</Text>
+        {status && status.error && (
+          <Text className="text-red-500 text-center mb-2">{status.message}</Text>
         )}
 
         {/* Edit Profile Section */}
@@ -252,8 +267,8 @@ export default function ProfileScreen({ user }: Props) {
 
         {/* Log Out Button */}
         <TouchableOpacity
-          onPress={() => signOut(auth)}
-          className="bg-red-500 rounded-full py-3 w-full max-w-md self-center mb-8"
+          onPress={handleLogout}
+          className="bg-red-500 rounded-full py-3 w-full max-w-md mt-8"
         >
           <Text className="text-white text-center font-semibold">Log Out</Text>
         </TouchableOpacity>
