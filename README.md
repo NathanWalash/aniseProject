@@ -14,7 +14,31 @@ Anise is a modern, mobile-first app for creating and managing DAOs (Decentralize
 5. **Logout**: The logout button is only on the Profile screen. Logging out returns the user to the landing page.
 6. **Persistent Login**: The app checks for a valid token on launch and refreshes it if needed.
 
-### **Navigation Structure**
+---
+
+## GoCardless Payments & Linking
+
+- **Linking Flow:**
+  - Users can link their bank account for payments via GoCardless from the Profile page.
+  - Tapping "Link GoCardless" opens a flow where the user is redirected to a GoCardless-hosted form, pre-filled with their name and email.
+  - After completing the form, the app confirms the link and stores the GoCardless mandate in the backend (and shows the status in the Profile page).
+  - The Profile page will automatically update to show the linked status and mandate ID after linking.
+
+- **Debug/Test Payments:**
+  - After linking, users can create test payments and subscriptions directly from the linking flow page for development/debugging.
+  - Results and errors are shown in-app for easy troubleshooting.
+
+- **Backend-Driven:**
+  - All GoCardless flows are handled via backend APIs. The frontend never talks directly to GoCardless.
+  - The backend manages user-mandate association, payment creation, and webhook handling.
+
+- **UI Integration:**
+  - The Profile page shows the current GoCardless status and allows linking if not already linked.
+  - After linking, the user can manage or test payments from the same flow.
+
+---
+
+## **Navigation Structure**
 - **Splash → Landing → (Login | Signup | Reset) → Main App Tabs**
 - All navigation is managed in `App.tsx` using a `screen` state variable.
 - The landing page buttons always work, and all screens can link to each other as expected.
