@@ -3,7 +3,8 @@ import 'dotenv/config';
 
 export default ({ config }) => {
   return {
-    ...config,
+    name: 'anise',
+    slug: 'anise',
     extra: {
       firebaseApiKey: process.env.FIREBASE_API_KEY,
       firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
