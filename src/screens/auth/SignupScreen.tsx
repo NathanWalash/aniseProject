@@ -10,13 +10,11 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { auth, db } from '../../firebase/config';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { API_BASE_URL } from '../../utils/api';
 
-type Props = { onLogin: () => void };
+type Props = { onLogin: () => void; onSignupSuccess?: () => void };
 
-export default function SignupScreen({ onLogin }: Props) {
+export default function SignupScreen({ onLogin, onSignupSuccess }: Props) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName]   = useState('');
   const [dob, setDob]             = useState('');
@@ -25,9 +23,11 @@ export default function SignupScreen({ onLogin }: Props) {
   const [confirm, setConfirm]     = useState('');
   const [error, setError]         = useState<string | null>(null);
   const [loading, setLoading]     = useState(false);
+  const [success, setSuccess]     = useState<string | null>(null);
 
   const handleSignup = async () => {
     setError(null);
+    setSuccess(null);
     if (password !== confirm) {
       setError('Passwords must match.');
       return;
@@ -38,20 +38,26 @@ export default function SignupScreen({ onLogin }: Props) {
     }
     setLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(
-        auth,
-        email.trim(),
-        password
-      );
-      await setDoc(doc(db, 'users', cred.user.uid), {
-        firstName,
-        lastName,
-        dateOfBirth: dob,
-        email: cred.user.email,
-        createdAt: Date.now(),
+      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          firstName,
+          lastName,
+          dateOfBirth: dob,
+        }),
       });
-    } catch (err) {
-      setError((err as Error).message);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Signup failed');
+      setSuccess('Account created! Please log in.');
+      setTimeout(() => {
+        setSuccess(null);
+        onLogin();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -119,6 +125,9 @@ export default function SignupScreen({ onLogin }: Props) {
 
             {error && (
               <Text className="text-red-500 text-center mb-4">{error}</Text>
+            )}
+            {success && (
+              <Text className="text-green-600 text-center mb-4">{success}</Text>
             )}
 
             <TouchableOpacity

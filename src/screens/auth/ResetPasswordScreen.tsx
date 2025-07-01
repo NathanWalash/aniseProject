@@ -10,12 +10,11 @@ import {
   View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../../firebase/config';
+import { API_BASE_URL } from '../../utils/api';
 
-type Props = { onBack: () => void };
+type Props = { onBack: () => void; onResetSuccess?: (msg: string) => void };
 
-export default function ResetPasswordScreen({ onBack }: Props) {
+export default function ResetPasswordScreen({ onBack, onResetSuccess }: Props) {
   const [email, setEmail]     = useState('');
   const [error, setError]     = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -30,10 +29,17 @@ export default function ResetPasswordScreen({ onBack }: Props) {
     }
     setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email.trim());
+      const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send reset email');
       setMessage('Reset email sent. Check your inbox.');
-    } catch (err) {
-      setError((err as Error).message);
+      if (onResetSuccess) onResetSuccess('Password reset email sent!');
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }

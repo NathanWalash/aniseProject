@@ -1,223 +1,109 @@
-# Anise
+# Anise Frontend (React Native / Expo)
 
 Anise is a modern, mobile-first app for creating and managing DAOs (Decentralized Autonomous Organizations) with a beautiful, intuitive onboarding experience. Built with React Native and Expo, Anise guides users from first launch through onboarding, authentication, and DAO creation using customizable off-chain JSON templates.
 
 ---
 
-## What is Anise?
+## How the Frontend Works
 
-- **Onboarding-first:** New users are greeted with a multi-page welcome splash, introducing the app and its features.
-- **Authentication:** Secure email/password login and signup, with persistent sessions and password reset, powered by Firebase Auth.
-- **DAO Creation Wizard:** Users can create new DAOs using a step-by-step wizard, selecting from off-chain JSON templates and customizing parameters before deployment.
-- **Profile & Account:** Users can manage their profile, account settings, and see their DAOs.
-- **Modern UI:** Uses NativeWind, gradients, SVG icons, and swipeable splash screens for a delightful experience.
+### **User Flow**
+1. **Welcome Splash**: On first launch, users see a multi-page welcome splash introducing the app.
+2. **Landing Page**: After the splash, users land on a page with two options: **Log In** or **Create Account**.
+3. **Authentication**: Users can log in, sign up, or reset their password. All authentication is handled by the backend (no direct Firebase SDK usage in the frontend).
+4. **Main App**: After login, users see a bottom tab navigator with the main app screens: MyAnises, Explore, Create, Notifications, Profile.
+5. **Logout**: The logout button is only on the Profile screen. Logging out returns the user to the landing page.
+6. **Persistent Login**: The app checks for a valid token on launch and refreshes it if needed.
 
----
-
-## Navigation Bar Structure
-
-Anise uses a bottom tab navigator for primary app navigation:
-
-| Tab            | Icon                | Description                                                                 |
-|----------------|---------------------|-----------------------------------------------------------------------------|
-| MyAnises       | myanises_icon.svg   | View DAOs you have created or joined.                                       |
-| Explore        | explore_icon.svg    | Discover public DAOs and templates.                                         |
-| Create         | create_icon.svg     | Start the DAO creation wizard.                                              |
-| Notifications  | notifications_icon.svg | View platform notifications and updates.                                 |
-| Profile        | profile_icon.svg    | View and edit your profile, account settings, and preferences.              |
-
-Each tab is implemented as a separate screen in `src/screens/`, and the navigation is set up in [`src/Navigation.tsx`](src/Navigation.tsx).
+### **Navigation Structure**
+- **Splash → Landing → (Login | Signup | Reset) → Main App Tabs**
+- All navigation is managed in `App.tsx` using a `screen` state variable.
+- The landing page buttons always work, and all screens can link to each other as expected.
 
 ---
 
-## Onboarding & Splash Screens
+## **Connecting to the Backend (ngrok Setup)**
 
-- **Welcome Splash:** On first launch (before login/signup), users see a 4-page welcome splash with swipeable pages, chevrons, and a "Get Started" button.
-- **Create Wizard Splash:** When starting the DAO creation flow, users see a 3-page splash introducing the creation process.
-- Both splash flows use gradients, swipe indicators, and a top-right close (X) button for a modern, mobile feel.
+The frontend talks to the backend via a REST API. If you are running the backend locally, you must expose it to the internet using [ngrok](https://ngrok.com/) so the mobile app can reach it.
 
----
-
-## DAO Creation Wizard & Off-chain JSON Templates
-
-- The Create flow is a 3-step wizard:
-  1. **Template Selection:** Choose a DAO template (e.g., Claims DAO, P2P Insurance) from a list loaded from an off-chain JSON file.
-  2. **Configuration:** Fill in required parameters (e.g., admin address, quorum) as defined by the template's schema.
-  3. **Review & Deploy:** Review your choices and "deploy" (currently simulated with a debug popup).
-- **Templates:**
-  - Stored in [`src/templates/aniseTemplates.json`](src/templates/aniseTemplates.json)
-  - Each template defines a name, description, modules, and a schema for required parameters.
-  - Example:
-    ```json
-    [
-      {
-        "templateName": "Claims DAO",
-        "templateDescription": "A DAO with membership and claim voting",
-        "modules": ["MemberModule", "ClaimVotingModule"],
-        "initParamsSchema": [
-          { "admin": "address" },
-          { "quorum": "uint256" }
-        ],
-        "templateId": "claims-voting-v1"
-      }
-    ]
-    ```
-  - This approach allows rapid iteration and off-chain customization of available DAO types.
-
----
-
-## Project Structure
-
-```
-aniseProject/
-├── App.tsx
-├── src/
-│   ├── firebase/
-│   │   └── config.ts
-│   ├── Navigation.tsx
-│   ├── templates/
-│   │   └── aniseTemplates.json
-│   └── screens/
-│       ├── auth/
-│       │   ├── LoginScreen.tsx
-│       │   ├── SignupScreen.tsx
-│       │   └── ResetPasswordScreen.tsx
-│       ├── create/
-│       │   ├── CreateScreen.tsx
-│       │   ├── splash/
-│       │   │   └── CreateSplashScreens.tsx
-│       │   └── wizard/
-│       │       ├── CreateWizard.tsx
-│       │       ├── Step1TemplateSelect.tsx
-│       │       ├── Step2Configure.tsx
-│       │       └── Step3Review.tsx
-│       ├── explore/
-│       │   └── ExploreScreen.tsx
-│       ├── landing/
-│       │   ├── LandingScreen.tsx
-│       │   └── WelcomeSplashScreens.tsx
-│       ├── myanises/
-│       │   └── MyAnisesScreen.tsx
-│       ├── notifications/
-│       │   └── NotificationsScreen.tsx
-│       └── profile/
-│           └── ProfileScreen.tsx
-├── assets/
-│   └── icons/
-│       ├── create_icon.svg
-│       ├── explore_icon.svg
-│       ├── myanises_icon.svg
-│       ├── notifications_icon.svg
-│       └── profile_icon.svg
-├── package.json
-├── app.config.js
-├── README.md
-└── ...
-```
-
----
-
-## Off-chain JSON Templates
-
-- All DAO templates are defined in [`src/templates/aniseTemplates.json`](src/templates/aniseTemplates.json).
-- This file is loaded at runtime and used to populate the template selection step in the wizard.
-- Each template can define its own modules and required parameters, making the system flexible and extensible without code changes.
-
----
-
-## Firebase Setup & Environment Variables
-
-To run Anise, you need a Firebase project and a `.env` file with your credentials.
-
-1. **Create a Firebase Project**
-   - Go to the [Firebase Console](https://console.firebase.google.com/) and create a new project.
-   - Under **Authentication → Sign-in method**, enable **Email/Password**.
-   - Under **Firestore Database**, click **Create database**, choose a location, and start in **Test mode** or **Production mode**.
-   - In **Firestore → Rules**, use:
+### **How to set up ngrok:**
+1. **Start your backend server locally** (e.g., in `aniseBackend/`).
+2. **Start ngrok** to tunnel your backend port (e.g., 3001):
+   ```bash
+   ngrok http 3001
+   ```
+3. **Copy the HTTPS URL** that ngrok gives you (e.g., `https://xxxx-xxx-xxx-xxx.ngrok-free.app`).
+4. **Update the frontend API base URL**:
+   - Open `aniseProject/src/utils/api.ts`.
+   - Change the value of `API_BASE_URL` to your ngrok URL:
      ```js
-     service cloud.firestore {
-       match /databases/{database}/documents {
-         match /users/{userId} {
-           allow create: if request.auth != null && request.auth.uid == userId;
-           allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-         }
-       }
-     }
+     export const API_BASE_URL = "https://xxxx-xxx-xxx-xxx.ngrok-free.app";
      ```
-   - Under **Project Settings → Your apps**, register a **Web** app and copy the Firebase config.
+5. **Save and restart the Expo app** if needed.
 
-2. **Create a `.env` file**
-   - In the project root, create a file named `.env` and add your Firebase config values:
-     ```env
-     FIREBASE_API_KEY=your_api_key
-     FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-     FIREBASE_PROJECT_ID=your_project_id
-     FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-     FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-     FIREBASE_APP_ID=your_app_id
-     ```
-   - **Important:** Ensure `.env` is in your `.gitignore` to keep your keys private.
-
-3. **Update `app.config.js`**
-   - Make sure `app.config.js` reads from `process.env` and exposes them via `expo-constants`:
-     ```js
-     import 'dotenv/config';
-     export default {
-       expo: {
-         name: 'anise',
-         slug: 'anise',
-         extra: {
-           firebaseApiKey: process.env.FIREBASE_API_KEY,
-           firebaseAuthDomain: process.env.FIREBASE_AUTH_DOMAIN,
-           firebaseProjectId: process.env.FIREBASE_PROJECT_ID,
-           firebaseStorageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-           firebaseMessagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
-           firebaseAppId: process.env.FIREBASE_APP_ID,
-         },
-       },
-     };
-     ```
+**Note:** If you restart ngrok, the URL will change. You must update `api.ts` each time.
 
 ---
 
-## Setup & Installation
+## **Firebase API Key**
+
+The frontend needs your Firebase Web API key to refresh tokens. This is **public** and safe to include in the frontend.
+
+- The key is stored in `aniseProject/src/utils/firebase.ts`:
+  ```js
+  export const FIREBASE_API_KEY = "your_firebase_api_key";
+  ```
+- If you use a different Firebase project, update this value to match your project's Web API key (found in Firebase Console → Project Settings → General → Web API Key).
+
+---
+
+## **Setup & Installation**
 
 1. **Clone the repository**
    ```bash
    git clone <YOUR_REPO_URL>
-   cd aniseProject
+   cd anise/aniseProject
    ```
 2. **Install dependencies**
    ```bash
    npm install
    npx expo install expo-constants @react-native-async-storage/async-storage expo-linear-gradient react-native-pager-view
    ```
-3. **Configure Firebase** (see previous instructions)
-4. **Run the app**
+3. **Configure ngrok and API base URL** (see above)
+4. **Configure Firebase API key** (see above)
+5. **Run the app**
    ```bash
    npx expo start
    ```
 
 ---
 
-## Status & Roadmap
+## **Project Structure (Key Files)**
 
-- [x] Onboarding splash screens
-- [x] Persistent authentication (Firebase)
-- [x] Bottom tab navigation with custom SVG icons
-- [x] DAO creation wizard with off-chain JSON templates
-- [x] Profile and account management
-- [ ] On-chain deployment and wallet integration (coming soon)
-- [ ] DAO discovery and social features (coming soon)
-
----
-
-## Contributing
-
-This project is a work in progress! PRs, issues, and feedback are welcome.
+- `App.tsx`: Handles onboarding, navigation, authentication state, and persistent login.
+- `src/screens/landing/WelcomeSplashScreens.tsx`: Multi-page welcome splash.
+- `src/screens/landing/LandingScreen.tsx`: Landing page with Log In / Create Account buttons.
+- `src/screens/auth/`: Login, Signup, and Reset Password screens.
+- `src/Navigation.tsx`: Main tab navigator for the app.
+- `src/utils/api.ts`: Set your backend API base URL here.
+- `src/utils/firebase.ts`: Set your Firebase Web API key here.
 
 ---
 
-## License
+## **Troubleshooting**
+- If the app can't connect to the backend, check that:
+  - Your backend is running and reachable from the internet (ngrok is active).
+  - The `API_BASE_URL` in `src/utils/api.ts` matches your current ngrok URL.
+- If authentication fails, check your backend logs and ensure the Firebase API key is correct.
+- If you change the backend or ngrok URL, restart the Expo app.
 
-MIT
+---
+
+## **Contributing**
+- Please keep all API keys and URLs in the appropriate utility files.
+- Do not commit sensitive keys to public repositories.
+- For new screens or features, follow the existing navigation and state management patterns in `App.tsx`.
+
+---
+
+## **Contact**
+For questions or help, contact the maintainers or open an issue.
