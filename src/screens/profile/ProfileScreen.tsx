@@ -1,5 +1,5 @@
 // src/screens/HomeScreen.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   SafeAreaView,
   Text,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 
 interface Profile {
   firstName: string;
@@ -20,6 +21,34 @@ interface Profile {
 }
 
 type ProfileScreenProps = { onLogout: () => void };
+
+// Fetch user profile from backend using ID token
+type UserProfile = {
+  gocardless?: {
+    mandate_id?: string;
+    customer_id?: string;
+    linked_at?: string;
+  };
+  // ...other fields
+};
+
+async function fetchUserProfile(): Promise<UserProfile | null> {
+  try {
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) throw new Error('No auth token found');
+    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!res.ok) throw new Error('Failed to fetch profile');
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to fetch user profile:', err);
+    return null;
+  }
+}
 
 export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -38,6 +67,10 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingPassword, setSavingPassword] = useState(false);
+  const navigation = useNavigation() as any; // TODO: use proper navigation typing
+  const [mandateId, setMandateId] = useState<string | null>(null);
+  const [loadingMandate, setLoadingMandate] = useState(false);
+  const isFocused = useIsFocused();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -60,7 +93,19 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
         setLoading(false);
       }
     };
-    fetchProfile();
+    const unsubscribe = navigation.addListener('focus', fetchProfile);
+    return unsubscribe;
+  }, [navigation]);
+
+  useEffect(() => {
+    async function fetchMandate() {
+      setLoadingMandate(true);
+      // Replace with your actual API call or Firestore fetch
+      const userProfile = await fetchUserProfile();
+      setMandateId(userProfile?.gocardless?.mandate_id || null);
+      setLoadingMandate(false);
+    }
+    fetchMandate();
   }, []);
 
   const saveProfile = async () => {
@@ -263,6 +308,25 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
               <Text className="text-white text-center">Update Password</Text>
             )}
           </TouchableOpacity>
+        </View>
+
+        {/* Payment Method Section */}
+        <View className="mt-6 p-4 bg-white rounded-2xl w-full max-w-md self-center shadow-card">
+          <Text className="font-bold text-lg mb-2">Payment Method</Text>
+          {loadingMandate ? (
+            <ActivityIndicator />
+          ) : !mandateId ? (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('PaymentsLinkFlow')}
+              className="bg-brand-500 rounded-full py-3"
+            >
+              <Text className="text-white text-center font-semibold">Link GoCardless</Text>
+            </TouchableOpacity>
+          ) : (
+            <View>
+              <Text className="text-green-600 mb-2">✅ GoCardless linked (Mandate: {mandateId})</Text>
+            </View>
+          )}
         </View>
 
         {/* Log Out Button */}

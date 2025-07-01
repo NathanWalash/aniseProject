@@ -12,8 +12,22 @@ import CreateIcon from '../assets/icons/create_icon.svg';
 import NotificationsIcon from '../assets/icons/notifications_icon.svg';
 import ProfileIcon from '../assets/icons/profile_icon.svg';
 import { SvgProps } from 'react-native-svg';
+import PaymentsLinkFlow from './screens/payments/PaymentsLinkFlow';
+import { createStackNavigator } from '@react-navigation/stack';
 
 const Tab = createBottomTabNavigator();
+const ProfileStack = createStackNavigator();
+
+function ProfileStackScreen({ user, onLogout }: { user: any, onLogout: () => void }) {
+  return (
+    <ProfileStack.Navigator>
+      <ProfileStack.Screen name="ProfileMain" options={{ headerShown: false }}>
+        {() => <ProfileScreen user={user} onLogout={onLogout} />}
+      </ProfileStack.Screen>
+      <ProfileStack.Screen name="PaymentsLinkFlow" component={PaymentsLinkFlow} options={{ title: 'Link GoCardless' }} />
+    </ProfileStack.Navigator>
+  );
+}
 
 // The user prop will be passed from App.tsx
 export default function Navigation({ user, onLogout }: { user: any, onLogout: () => void }) {
@@ -38,7 +52,7 @@ export default function Navigation({ user, onLogout }: { user: any, onLogout: ()
         <Tab.Screen name="Create" component={CreateScreen} />
         <Tab.Screen name="Notifications" component={NotificationsScreen} />
         <Tab.Screen name="Profile">
-          {() => <ProfileScreen user={user} onLogout={onLogout} />}
+          {() => <ProfileStackScreen user={user} onLogout={onLogout} />}
         </Tab.Screen>
       </Tab.Navigator>
     </NavigationContainer>
