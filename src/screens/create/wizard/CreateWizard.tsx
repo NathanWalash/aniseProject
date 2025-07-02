@@ -152,55 +152,56 @@ export default function CreateWizard() {
           <ProgressStep label="Review" removeBtnRow />
         </ProgressSteps>
       </View>
-      {/* Step Content ScrollView, with enough bottom padding and marginTop for progress bar */}
-      <ScrollView
-        ref={scrollViewRef}
-        style={{ flex: 1, marginTop: progressBarHeight, paddingBottom: 88 }}
-        contentContainerStyle={{ minHeight: Dimensions.get('window').height - 160, paddingHorizontal: 24, paddingTop: 8 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, textAlign: 'center', color: '#222' }}>{stepTitles[step - 1]}</Text>
-        {step === 1 && (
-          <Step1TemplateSelect
-            onSelect={handleSelectTemplate}
-            step={step}
-            selectedTemplate={selectedTemplate}
-            setSelectedTemplate={setSelectedTemplate}
-          />
-        )}
-        {step === 2 && selectedTemplate && (
-          <Step2Configure
-            template={selectedTemplate}
-            config={config}
-            setConfig={setConfig}
-            onNext={handleConfigNext}
-            onBack={() => goToStep(1)}
-            step={step}
-          />
-        )}
-        {step === 3 && selectedTemplate && (
-          <Step3Review
-            template={selectedTemplate}
-            config={config}
-            onBack={() => goToStep(2)}
-            onReset={reset}
-            step={step}
-            agreed={agreed}
-            setAgreed={setAgreed}
-          />
-        )}
-        {/* Subtle info link at the bottom */}
-        <View style={{ alignItems: 'center', marginTop: 32, marginBottom: 12 }}>
-          <TouchableOpacity
-            onPress={() => setShowInfo(true)}
-            style={{ flexDirection: 'row', alignItems: 'center', opacity: 0.7 }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Icon name="information-circle-outline" size={20} color="#2563eb" style={{ marginRight: 6 }} />
-            <Text style={{ color: '#2563eb', fontSize: 15, textDecorationLine: 'underline' }}>How this works</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      <View style={{ flex: 1 }}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={{ flex: 1, marginTop: progressBarHeight, marginBottom: 88 }}
+          contentContainerStyle={{ minHeight: Dimensions.get('window').height - 160, paddingHorizontal: 24, paddingTop: 8 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, textAlign: 'center', color: '#222' }}>{stepTitles[step - 1]}</Text>
+          {step === 1 && (
+            <Step1TemplateSelect
+              onSelect={handleSelectTemplate}
+              step={step}
+              selectedTemplate={selectedTemplate}
+              setSelectedTemplate={setSelectedTemplate}
+            />
+          )}
+          {step === 2 && selectedTemplate && (
+            <Step2Configure
+              template={selectedTemplate}
+              config={config}
+              setConfig={setConfig}
+              onNext={handleConfigNext}
+              onBack={() => goToStep(1)}
+              step={step}
+            />
+          )}
+          {step === 3 && selectedTemplate && (
+            <Step3Review
+              template={selectedTemplate}
+              config={config}
+              onBack={() => goToStep(2)}
+              onReset={reset}
+              step={step}
+              agreed={agreed}
+              setAgreed={setAgreed}
+            />
+          )}
+          {/* Subtle info link at the bottom of the scroll window */}
+          <View style={{ alignItems: 'center', marginTop: 0, marginBottom: 12 }}>
+            <TouchableOpacity
+              onPress={() => setShowInfo(true)}
+              style={{ flexDirection: 'row', alignItems: 'center', opacity: 0.7 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Icon name="information-circle-outline" size={20} color="#2563eb" style={{ marginRight: 6 }} />
+              <Text style={{ color: '#2563eb', fontSize: 15, textDecorationLine: 'underline' }}>How this works</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
       {/* Navigation Buttons fixed at the bottom */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 3 }}>{navButtons}</View>
       {/* Splash Modal */}
