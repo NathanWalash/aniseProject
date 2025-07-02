@@ -3,6 +3,16 @@ import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-na
 import type { Template } from './CreateWizard';
 import { deployAnise } from './deployAnise';
 
+// Placeholder for current user (replace with real user context)
+const currentUser = { displayName: 'Test User' };
+
+const baseParams = [
+  { name: 'daoName', label: 'DAO Name' },
+  { name: 'daoBrief', label: 'Brief Description' },
+  { name: 'daoMandate', label: 'Mandate' },
+  { name: 'isPublic', label: 'Public DAO?' },
+];
+
 type Props = {
   template: Template;
   config: Record<string, any>;
@@ -14,20 +24,34 @@ type Props = {
 export default function Step3Review({ template, config, onBack, onReset, step = 3 }: Props) {
   const [agreed, setAgreed] = useState(false);
 
+  // Prepare final config with system-generated fields
+  const finalConfig: Record<string, any> = {
+    ...config,
+    createdBy: currentUser.displayName,
+    dateCreated: new Date().toISOString(),
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
           <Text className="text-2xl font-bold mb-4">Review Your Anise</Text>
+          {/* Base parameters */}
           <View className="mb-4">
-            <Text className="font-semibold">Template:</Text>
-            <Text>{template.templateName}</Text>
-            <Text className="text-gray-600 mb-2">{template.templateDescription}</Text>
+            <Text className="font-semibold mb-2">DAO Details:</Text>
+            {baseParams.map(param => (
+              <Text key={param.name} className="mb-1">
+                {param.label}: {param.name === 'isPublic' ? (finalConfig[param.name] ? 'Public' : 'Private') : finalConfig[param.name]}
+              </Text>
+            ))}
+            <Text className="mb-1">Created By: {finalConfig.createdBy}</Text>
+            <Text className="mb-1">Date Created: {finalConfig.dateCreated}</Text>
           </View>
+          {/* Module parameters */}
           <View className="mb-4">
-            <Text className="font-semibold mb-2">Configuration:</Text>
-            {Object.entries(config).map(([key, value]) => (
-              <Text key={key} className="mb-1">{key}: {value}</Text>
+            <Text className="font-semibold mb-2">Module Configuration:</Text>
+            {Object.entries(config).filter(([key]) => !baseParams.some(p => p.name === key)).map(([key, value]) => (
+              <Text key={key} className="mb-1">{key}: {String(value)}</Text>
             ))}
           </View>
           <View className="flex-row items-center mb-4">
@@ -58,7 +82,7 @@ export default function Step3Review({ template, config, onBack, onReset, step = 
             <TouchableOpacity
               style={{ flex: 1, marginLeft: 8, backgroundColor: agreed ? '#2563eb' : '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
               onPress={() => {
-                deployAnise(template, config);
+                deployAnise(template, finalConfig);
                 onReset();
               }}
               disabled={!agreed}

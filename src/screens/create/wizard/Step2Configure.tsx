@@ -1,8 +1,15 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, Switch } from 'react-native';
 import Slider from '@react-native-community/slider';
 import modules from '../../../templates/modules';
 import type { Template } from './CreateWizard';
+
+const baseParams = [
+  { name: 'daoName', label: 'DAO Name', widget: 'text' },
+  { name: 'daoBrief', label: 'Brief Description', widget: 'text' },
+  { name: 'daoMandate', label: 'Mandate', widget: 'textarea' },
+  { name: 'isPublic', label: 'Public DAO?', widget: 'switch' },
+];
 
 type Props = {
   template: Template;
@@ -20,7 +27,49 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
     return mod ? mod.initParamsSchema : [];
   });
 
-  // Helper to render each field
+  // Render base fields
+  const renderBaseField = (param: any) => {
+    switch (param.widget) {
+      case 'textarea':
+        return (
+          <View key={param.name} style={{ marginBottom: 16 }}>
+            <Text>{param.label}</Text>
+            <TextInput
+              multiline
+              numberOfLines={4}
+              value={config[param.name] ?? ''}
+              onChangeText={text => setConfig({ ...config, [param.name]: text })}
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 8, minHeight: 80 }}
+            />
+          </View>
+        );
+      case 'switch':
+        return (
+          <View key={param.name} style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ marginRight: 12 }}>{param.label}</Text>
+            <Switch
+              value={!!config[param.name]}
+              onValueChange={value => setConfig({ ...config, [param.name]: value })}
+            />
+            <Text style={{ marginLeft: 8 }}>{config[param.name] ? 'Public' : 'Private'}</Text>
+          </View>
+        );
+      case 'text':
+      default:
+        return (
+          <View key={param.name} style={{ marginBottom: 16 }}>
+            <Text>{param.label}</Text>
+            <TextInput
+              value={config[param.name] ?? ''}
+              onChangeText={text => setConfig({ ...config, [param.name]: text })}
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 8 }}
+            />
+          </View>
+        );
+    }
+  };
+
+  // Render module-driven fields
   const renderField = (param: any) => {
     switch (param.widget) {
       case 'slider':
@@ -64,16 +113,27 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
     }
   };
 
-  const allFilled = paramSchemas.every(param => {
-    const key = Object.keys(param)[0];
-    return config[key] && config[key].trim() !== '';
+  // All base fields must be filled
+  const allBaseFilled = baseParams.every(param => {
+    if (param.widget === 'switch') return true; // switch always has a value
+    return config[param.name] && config[param.name].trim() !== '';
   });
+  // All module fields must be filled
+  const allModuleFilled = paramSchemas.every(param => {
+    const key = param.name;
+    return config[key] !== undefined && config[key] !== '';
+  });
+  const allFilled = allBaseFilled && allModuleFilled;
 
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
           <Text className="text-2xl font-bold mb-4">Configure Your Anise</Text>
+          {/* Render base parameters first */}
+          {baseParams.map(renderBaseField)}
+          {/* Then render module-driven parameters */}
+          {paramSchemas.length > 0 && <Text style={{ fontWeight: 'bold', marginTop: 16, marginBottom: 8 }}>Module Parameters</Text>}
           {paramSchemas.map(renderField)}
         </ScrollView>
         {/* Progress and Buttons */}
