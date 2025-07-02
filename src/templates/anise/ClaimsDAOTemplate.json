@@ -1,0 +1,6 @@
+{
+  "templateName": "Claims DAO",
+  "templateDescription": "A DAO with membership and claim voting",
+  "modules": ["MemberModule", "ClaimVotingModule"],
+  "templateId": "claims-voting-v1"
+} 

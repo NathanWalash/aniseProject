@@ -1,0 +1,14 @@
+{
+  "moduleName": "ClaimVotingModule",
+  "initParamsSchema": [
+    {
+      "name": "quorum",
+      "type": "uint256",
+      "label": "Quorum (%)",
+      "widget": "slider",
+      "min": 0,
+      "max": 100,
+      "default": 50
+    }
+  ]
+} 

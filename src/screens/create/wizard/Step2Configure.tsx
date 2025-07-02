@@ -1,22 +1,70 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import Slider from '@react-native-community/slider';
+import modules from '../../../templates/modules';
 import type { Template } from './CreateWizard';
 
 type Props = {
   template: Template;
   config: Record<string, any>;
-  setConfig: (c: Record<string, any>) => void;
-  onNext: (config: Record<string, any>) => void;
+  setConfig: (cfg: Record<string, any>) => void;
+  onNext: (cfg: Record<string, any>) => void;
   onBack: () => void;
-  step?: number;
+  step: number;
 };
 
-export default function Step2Configure({ template, config, setConfig, onNext, onBack, step = 2 }: Props) {
-  const handleChange = (key: string, value: string) => {
-    setConfig({ ...config, [key]: value });
+export default function Step2Configure({ template, config, setConfig, onNext, onBack, step }: Props) {
+  // Aggregate all initParamsSchema from the template's modules
+  const paramSchemas = template.modules.flatMap((moduleName) => {
+    const mod = modules[moduleName];
+    return mod ? mod.initParamsSchema : [];
+  });
+
+  // Helper to render each field
+  const renderField = (param: any) => {
+    switch (param.widget) {
+      case 'slider':
+        return (
+          <View key={param.name} style={{ marginBottom: 16 }}>
+            <Text>{param.label}</Text>
+            <Slider
+              minimumValue={param.min}
+              maximumValue={param.max}
+              value={config[param.name] ?? param.default}
+              onValueChange={(value: number) => setConfig({ ...config, [param.name]: value })}
+              step={1}
+            />
+            <Text>{config[param.name] ?? param.default}</Text>
+          </View>
+        );
+      case 'number':
+        return (
+          <View key={param.name} style={{ marginBottom: 16 }}>
+            <Text>{param.label}</Text>
+            <TextInput
+              keyboardType="numeric"
+              value={String(config[param.name] ?? param.default)}
+              onChangeText={text => setConfig({ ...config, [param.name]: Number(text) })}
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 8 }}
+            />
+          </View>
+        );
+      case 'text':
+      default:
+        return (
+          <View key={param.name} style={{ marginBottom: 16 }}>
+            <Text>{param.label}</Text>
+            <TextInput
+              value={config[param.name] ?? ''}
+              onChangeText={text => setConfig({ ...config, [param.name]: text })}
+              style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 8 }}
+            />
+          </View>
+        );
+    }
   };
 
-  const allFilled = template.initParamsSchema.every(param => {
+  const allFilled = paramSchemas.every(param => {
     const key = Object.keys(param)[0];
     return config[key] && config[key].trim() !== '';
   });
@@ -26,20 +74,7 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
       <View style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
           <Text className="text-2xl font-bold mb-4">Configure Your Anise</Text>
-          {template.initParamsSchema.map((param, idx) => {
-            const key = Object.keys(param)[0];
-            return (
-              <View key={key} className="mb-4">
-                <Text className="font-semibold mb-1">{key}</Text>
-                <TextInput
-                  className="border border-gray-300 rounded px-3 py-2"
-                  placeholder={`Enter ${key}`}
-                  value={config[key] || ''}
-                  onChangeText={v => handleChange(key, v)}
-                />
-              </View>
-            );
-          })}
+          {paramSchemas.map(renderField)}
         </ScrollView>
         {/* Progress and Buttons */}
         <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingBottom: 24, paddingHorizontal: 16, backgroundColor: '#fff' }}>

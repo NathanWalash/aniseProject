@@ -1,0 +1,11 @@
+{
+  "moduleName": "MemberModule",
+  "initParamsSchema": [
+    {
+      "name": "admin",
+      "type": "address",
+      "label": "Admin Address",
+      "widget": "text"
+    }
+  ]
+} 

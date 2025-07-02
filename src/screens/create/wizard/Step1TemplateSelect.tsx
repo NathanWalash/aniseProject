@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import type { Template } from './CreateWizard';
-
-const allTemplates: Template[] = require('../../../templates/aniseTemplates.json');
+import allTemplates from '../../../templates/anise';
 
 type Props = {
   onSelect: (template: Template) => void;
