@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import type { Template } from './CreateWizard';
 import { deployAnise } from './deployAnise';
-
-// Placeholder for current user (replace with real user context)
-const currentUser = { displayName: 'Test User' };
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../../utils/api';
 
 const baseParams = [
   { name: 'daoName', label: 'DAO Name' },
@@ -21,13 +20,47 @@ type Props = {
   step?: number;
 };
 
+async function fetchUserProfile() {
+  try {
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) throw new Error('No auth token found');
+    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!res.ok) throw new Error('Failed to fetch profile');
+    return await res.json();
+  } catch (err) {
+    console.error('Failed to fetch user profile:', err);
+    return null;
+  }
+}
+
 export default function Step3Review({ template, config, onBack, onReset, step = 3 }: Props) {
   const [agreed, setAgreed] = useState(false);
+  const [creatorName, setCreatorName] = useState<string>('');
+  const [profileLoading, setProfileLoading] = useState(true);
 
-  // Prepare final config with system-generated fields
+  useEffect(() => {
+    fetchUserProfile().then(profile => {
+      if (profile) {
+        setCreatorName(
+          (profile.firstName && profile.lastName)
+            ? `${profile.firstName} ${profile.lastName}`
+            : profile.email || 'Unknown'
+        );
+      } else {
+        setCreatorName('Unknown');
+      }
+      setProfileLoading(false);
+    });
+  }, []);
+
   const finalConfig: Record<string, any> = {
     ...config,
-    createdBy: currentUser.displayName,
+    createdBy: creatorName,
     dateCreated: new Date().toISOString(),
   };
 
@@ -44,7 +77,7 @@ export default function Step3Review({ template, config, onBack, onReset, step = 
                 {param.label}: {param.name === 'isPublic' ? (finalConfig[param.name] ? 'Public' : 'Private') : finalConfig[param.name]}
               </Text>
             ))}
-            <Text className="mb-1">Created By: {finalConfig.createdBy}</Text>
+            <Text className="mb-1">Created By: {profileLoading ? 'Loading...' : finalConfig.createdBy}</Text>
             <Text className="mb-1">Date Created: {finalConfig.dateCreated}</Text>
           </View>
           {/* Module parameters */}

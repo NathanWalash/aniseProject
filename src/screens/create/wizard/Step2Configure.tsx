@@ -44,14 +44,38 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
           </View>
         );
       case 'switch':
+        // Use segmented control for Public/Private
         return (
-          <View key={param.name} style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ marginRight: 12 }}>{param.label}</Text>
-            <Switch
-              value={!!config[param.name]}
-              onValueChange={value => setConfig({ ...config, [param.name]: value })}
-            />
-            <Text style={{ marginLeft: 8 }}>{config[param.name] ? 'Public' : 'Private'}</Text>
+          <View key={param.name} style={{ marginBottom: 16 }}>
+            <Text style={{ marginBottom: 8 }}>{param.label}</Text>
+            <View style={{ flexDirection: 'row' }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: config[param.name] === true ? '#2563eb' : '#d1d5db',
+                  paddingVertical: 12,
+                  borderTopLeftRadius: 8,
+                  borderBottomLeftRadius: 8,
+                  alignItems: 'center',
+                }}
+                onPress={() => setConfig({ ...config, [param.name]: true })}
+              >
+                <Text style={{ color: config[param.name] === true ? '#fff' : '#333', fontWeight: 'bold' }}>Public</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: config[param.name] === false ? '#2563eb' : '#d1d5db',
+                  paddingVertical: 12,
+                  borderTopRightRadius: 8,
+                  borderBottomRightRadius: 8,
+                  alignItems: 'center',
+                }}
+                onPress={() => setConfig({ ...config, [param.name]: false })}
+              >
+                <Text style={{ color: config[param.name] === false ? '#fff' : '#333', fontWeight: 'bold' }}>Private</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         );
       case 'text':
