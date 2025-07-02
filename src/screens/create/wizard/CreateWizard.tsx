@@ -189,13 +189,15 @@ export default function CreateWizard() {
             setAgreed={setAgreed}
           />
         )}
-        {/* Info Button below content */}
-        <View style={{ alignItems: 'center', marginVertical: 24 }}>
+        {/* Subtle info link at the bottom */}
+        <View style={{ alignItems: 'center', marginTop: 32, marginBottom: 12 }}>
           <TouchableOpacity
             onPress={() => setShowInfo(true)}
-            style={{ backgroundColor: 'rgba(245,245,245,0.9)', borderRadius: 16, padding: 8 }}
+            style={{ flexDirection: 'row', alignItems: 'center', opacity: 0.7 }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Icon name="information-circle-outline" size={28} color="#2563eb" />
+            <Icon name="information-circle-outline" size={20} color="#2563eb" style={{ marginRight: 6 }} />
+            <Text style={{ color: '#2563eb', fontSize: 15, textDecorationLine: 'underline' }}>How this works</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
