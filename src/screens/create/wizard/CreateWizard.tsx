@@ -155,8 +155,8 @@ export default function CreateWizard() {
       {/* Step Content ScrollView, with enough bottom padding and marginTop for progress bar */}
       <ScrollView
         ref={scrollViewRef}
-        style={{ flex: 1, marginTop: progressBarHeight + 8, paddingBottom: 88 }}
-        contentContainerStyle={{ minHeight: Dimensions.get('window').height - 160, paddingHorizontal: 24 }}
+        style={{ flex: 1, marginTop: progressBarHeight, paddingBottom: 88 }}
+        contentContainerStyle={{ minHeight: Dimensions.get('window').height - 160, paddingHorizontal: 24, paddingTop: 8 }}
         keyboardShouldPersistTaps="handled"
       >
         <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, textAlign: 'center', color: '#222' }}>{stepTitles[step - 1]}</Text>

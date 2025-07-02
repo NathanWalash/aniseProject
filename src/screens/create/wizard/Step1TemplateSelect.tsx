@@ -70,11 +70,29 @@ export default function Step1TemplateSelect({ onSelect, selectedTemplate, setSel
                   <Text key={m} style={{ color: '#444', marginLeft: 8 }}>• {m}</Text>
                 ))}
                 <TouchableOpacity
-                  style={{ marginTop: 12, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', opacity: 0.8 }}
+                  style={{
+                    marginTop: 18,
+                    alignSelf: 'stretch',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#2563eb',
+                    borderRadius: 8,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    shadowColor: '#2563eb',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 4,
+                    elevation: 2,
+                  }}
                   onPress={() => navigation.navigate('Explore')}
+                  activeOpacity={0.92}
                 >
-                  <Icon name="search-outline" size={18} color="#2563eb" style={{ marginRight: 4 }} />
-                  <Text style={{ color: '#2563eb', fontSize: 15, textDecorationLine: 'underline' }}>See Example Groups</Text>
+                  <Icon name="search-outline" size={18} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: 'bold', letterSpacing: 0.2 }}>
+                    Explore User-Created Groups
+                  </Text>
                 </TouchableOpacity>
               </View>
             )}
