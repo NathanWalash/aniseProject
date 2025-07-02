@@ -9,7 +9,7 @@ const baseParams = [
   { name: 'daoName', label: 'DAO Name' },
   { name: 'daoBrief', label: 'Brief Description' },
   { name: 'daoMandate', label: 'Mandate' },
-  { name: 'isPublic', label: 'Public DAO?' },
+  { name: 'isPublic', label: 'Visibility' },
 ];
 
 type Props = {
@@ -65,17 +65,22 @@ export default function Step3Review({ template, config, onBack, onReset, agreed,
     dateCreated: new Date().toISOString(),
   };
 
+  // Helper to format date as YYYY-MM-DD
+  function formatDate(dateString: string) {
+    const d = new Date(dateString);
+    return d.toISOString().split('T')[0];
+  }
+
   return (
     <>
       <View style={{ marginBottom: 24 }}>
         <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>DAO Details:</Text>
-        {baseParams.map(param => (
-          <Text key={param.name} style={{ marginBottom: 2 }}>
-            {param.label}: {param.name === 'isPublic' ? (finalConfig[param.name] ? 'Public' : 'Private') : finalConfig[param.name]}
-          </Text>
-        ))}
+        <Text style={{ marginBottom: 2 }}>DAO Name: {finalConfig.daoName}</Text>
+        <Text style={{ marginBottom: 2 }}>Brief Description: {finalConfig.daoBrief}</Text>
+        <Text style={{ marginBottom: 2 }}>Mandate: {finalConfig.daoMandate}</Text>
+        <Text style={{ marginBottom: 2 }}>Visibility: {finalConfig.isPublic ? 'Public' : 'Private'}</Text>
         <Text style={{ marginBottom: 2 }}>Created By: {profileLoading ? 'Loading...' : finalConfig.createdBy}</Text>
-        <Text style={{ marginBottom: 2 }}>Date Created: {finalConfig.dateCreated}</Text>
+        <Text style={{ marginBottom: 2 }}>Date Created: {formatDate(finalConfig.dateCreated)}</Text>
       </View>
       <View style={{ marginBottom: 24 }}>
         <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>Module Configuration:</Text>
