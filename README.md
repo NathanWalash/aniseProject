@@ -73,9 +73,9 @@ The frontend talks to the backend via a REST API. If you are running the backend
 The frontend needs your Firebase Web API key to refresh tokens. This is **public** and safe to include in the frontend.
 
 - The key is stored in `aniseProject/src/utils/firebase.ts`:
-  ```js
+     ```js
   export const FIREBASE_API_KEY = "your_firebase_api_key";
-  ```
+     ```
 - If you use a different Firebase project, update this value to match your project's Web API key (found in Firebase Console → Project Settings → General → Web API Key).
 
 ---

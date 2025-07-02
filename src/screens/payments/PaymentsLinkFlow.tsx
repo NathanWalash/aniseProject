@@ -4,10 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
-// TODO: Replace with your actual user fetching logic
-async function getCurrentUser() {
-  return { displayName: 'Test User', email: 'test@example.com' };
-}
+
 // TODO: Replace with your real API utility
 const api = {
   post: async (endpoint: string, body: any) => {
@@ -47,10 +44,8 @@ export default function PaymentsLinkFlow() {
     setLoading(true);
     setError(null);
     try {
-      const user = await getCurrentUser();
-      const name = user.displayName || user.email || 'User';
-      const email = user.email;
-      const res = await api.post('/api/start-redirect-flow', { name, email });
+      // No need to fetch user or send name/email
+      const res = await api.post('/api/start-redirect-flow', {});
       setFlowData(res.data);
       setStep('redirected');
       await Linking.openURL(res.data.redirect_url);

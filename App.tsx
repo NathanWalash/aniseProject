@@ -101,15 +101,15 @@ export default function App() {
   if (!userToken) {
     if (showWelcome) {
       return <WelcomeSplashScreens onDone={() => { setShowWelcome(false); setScreen(undefined); }} />;
-    }
+  }
     if (screen === undefined) {
-      return (
-        <LandingScreen
+    return (
+      <LandingScreen
           onLogin={() => setScreen('login')}
           onCreateAccount={() => setScreen('signup')}
-        />
-      );
-    }
+      />
+    );
+  }
     if (screen === 'signup') {
       return <SignupScreen onLogin={() => setScreen('login')} onSignupSuccess={() => setScreen('login')} />;
     }
@@ -117,7 +117,7 @@ export default function App() {
       return <ResetPasswordScreen onBack={() => setScreen('login')} onResetSuccess={handleResetSuccess} />;
     }
     if (screen === 'login') {
-      return (
+    return (
         <>
           <LoginScreen onCreateAccount={() => setScreen('signup')} onForgotPassword={() => setScreen('reset')} onLoginSuccess={handleLoginSuccess} />
           {resetSuccess && <Text style={{ color: 'green', textAlign: 'center', marginTop: 16 }}>{resetSuccess}</Text>}
