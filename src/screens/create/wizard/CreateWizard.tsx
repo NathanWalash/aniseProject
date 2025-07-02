@@ -89,15 +89,16 @@ export default function CreateWizard() {
     });
     const allFilled = allBaseFilled && allModuleFilled;
     navButtons = (
-      <View style={{ width: '100%', padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb', flexDirection: 'row', justifyContent: 'space-between' }}>
+      <View style={{ width: '100%', padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb', flexDirection: 'row' }}>
         <TouchableOpacity
-          style={{ flex: 1, marginRight: 8, backgroundColor: '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
+          style={{ flex: 1, backgroundColor: '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
           onPress={() => goToStep(1)}
         >
           <Text style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>Previous Step</Text>
         </TouchableOpacity>
+        <View style={{ width: 8 }} />
         <TouchableOpacity
-          style={{ flex: 1, marginLeft: 8, backgroundColor: allFilled ? '#2563eb' : '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
+          style={{ flex: 1, backgroundColor: allFilled ? '#2563eb' : '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
           onPress={() => handleConfigNext(config)}
           disabled={!allFilled}
         >
@@ -107,15 +108,16 @@ export default function CreateWizard() {
     );
   } else if (step === 3 && selectedTemplate) {
     navButtons = (
-      <View style={{ width: '100%', padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb', flexDirection: 'row', justifyContent: 'space-between' }}>
+      <View style={{ width: '100%', padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb', flexDirection: 'row' }}>
         <TouchableOpacity
-          style={{ flex: 1, marginRight: 8, backgroundColor: '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
+          style={{ flex: 1, backgroundColor: '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
           onPress={() => goToStep(2)}
         >
           <Text style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>Previous Step</Text>
         </TouchableOpacity>
+        <View style={{ width: 8 }} />
         <TouchableOpacity
-          style={{ flex: 1, marginLeft: 8, backgroundColor: agreed ? '#2563eb' : '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
+          style={{ flex: 1, backgroundColor: agreed ? '#2563eb' : '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
           onPress={() => {
             // Deploy logic should be handled in Step3Review, but for now just reset
             reset();
