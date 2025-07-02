@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- Small center dot -->
+  <circle cx="60" cy="60" r="3" fill="#1f142c"/>
+  <!-- Medium diagonal dots (NE, NW, SE, SW) -->
+  <circle cx="75" cy="45" r="6" fill="#1f142c"/>
+  <circle cx="45" cy="45" r="6" fill="#1f142c"/>
+  <circle cx="45" cy="75" r="6" fill="#1f142c"/>
+  <circle cx="75" cy="75" r="6" fill="#1f142c"/>
+  <!-- Large outer cross dots -->
+  <circle cx="60" cy="25" r="10" fill="#1f142c"/>
+  <circle cx="60" cy="95" r="10" fill="#1f142c"/>
+  <circle cx="25" cy="60" r="10" fill="#1f142c"/>
+  <circle cx="95" cy="60" r="10" fill="#1f142c"/>
+</svg>

@@ -6,7 +6,7 @@ import ExploreScreen from './screens/explore/ExploreScreen';
 import CreateScreen from './screens/create/CreateScreen';
 import NotificationsScreen from './screens/notifications/NotificationsScreen';
 import ProfileScreen from './screens/profile/ProfileScreen';
-import MyAnisesIcon from '../assets/icons/myanises_icon.svg';
+import MyAnisesIcon from '../assets/icons/anise.svg';
 import ExploreIcon from '../assets/icons/explore_icon.svg';
 import CreateIcon from '../assets/icons/create_icon.svg';
 import NotificationsIcon from '../assets/icons/notifications_icon.svg';
@@ -16,7 +16,7 @@ import { SvgProps } from 'react-native-svg';
 const Tab = createBottomTabNavigator();
 
 // The user prop will be passed from App.tsx
-export default function Navigation({ user }: { user: any }) {
+export default function Navigation({ user, onLogout }: { user: any, onLogout: () => void }) {
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -33,9 +33,9 @@ export default function Navigation({ user }: { user: any }) {
           tabBarInactiveTintColor: 'gray',
         })}
       >
-        <Tab.Screen name="MyAnises" component={MyAnisesScreen} />
         <Tab.Screen name="Explore" component={ExploreScreen} />
         <Tab.Screen name="Create" component={CreateScreen} />
+        <Tab.Screen name="MyAnises" component={MyAnisesScreen} />
         <Tab.Screen name="Notifications" component={NotificationsScreen} />
         <Tab.Screen name="Profile">
           {() => <ProfileScreen user={user} />}
