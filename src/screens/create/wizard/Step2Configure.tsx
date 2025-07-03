@@ -59,7 +59,7 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
     const showFloating = focused || (localValue && localValue.length > 0);
     return (
       <View style={styles.floatingInputContainer}>
-        <Text style={[styles.floatingLabel, showFloating && styles.floatingLabelActive]}>{label}</Text>
+        <Text style={[styles.floatingLabel, showFloating && styles.floatingLabelActive]} pointerEvents="none">{label}</Text>
         <TextInput
           value={localValue}
           onChangeText={setLocalValue}
@@ -86,7 +86,7 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
         accessibilityRole="button"
         accessibilityState={{ selected: value }}
       >
-        <Icon name="globe-outline" size={18} color={value ? '#2563eb' : '#888'} style={{ marginRight: 6 }} />
+        <Icon name="globe-outline" size={18} color={value ? '#fff' : '#2563eb'} style={{ marginRight: 6 }} />
         <Text style={[styles.segmentText, value && styles.segmentTextActive]}>Public</Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -95,7 +95,7 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
         accessibilityRole="button"
         accessibilityState={{ selected: !value }}
       >
-        <Icon name="lock-closed-outline" size={18} color={!value ? '#2563eb' : '#888'} style={{ marginRight: 6 }} />
+        <Icon name="lock-closed-outline" size={18} color={!value ? '#fff' : '#2563eb'} style={{ marginRight: 6 }} />
         <Text style={[styles.segmentText, !value && styles.segmentTextActive]}>Private</Text>
       </TouchableOpacity>
     </View>
