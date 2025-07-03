@@ -44,9 +44,9 @@ export default function SignupScreen({ onLogin, onSignupSuccess }: Props) {
         body: JSON.stringify({
           email: email.trim(),
           password,
-          firstName,
-          lastName,
-          dateOfBirth: dob,
+        firstName,
+        lastName,
+        dateOfBirth: dob,
         }),
       });
       const data = await res.json();

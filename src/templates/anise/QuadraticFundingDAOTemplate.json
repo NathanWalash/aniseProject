@@ -1,0 +1,6 @@
+{
+  "templateName": "Quadratic Funding DAO",
+  "templateDescription": "A DAO for quadratic funding of public goods proposals",
+  "modules": ["MemberModule", "QuadraticFundingModule"],
+  "templateId": "quadratic-funding-v1"
+} 

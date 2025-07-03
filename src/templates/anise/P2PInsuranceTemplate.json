@@ -1,0 +1,6 @@
+{
+  "templateName": "P2P Insurance",
+  "templateDescription": "Peer-to-peer insurance pool",
+  "modules": ["MemberModule", "InsuranceModule"],
+  "templateId": "p2p-insurance-v1"
+} 
