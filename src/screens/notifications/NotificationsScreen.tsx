@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Image } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Image, ScrollView } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import exampleNotifications from './exampleNotifications.json';
 
@@ -26,9 +26,25 @@ const typeIcon: Record<string, string> = {
   reminder: 'alarm-outline',
 };
 
+const FILTERS = [
+  { label: 'All', value: 'all' },
+  { label: 'Today', value: 'today' },
+  { label: 'This Week', value: 'week' },
+];
+
+function isThisWeek(date: Date) {
+  const now = new Date();
+  const firstDayOfWeek = new Date(now);
+  firstDayOfWeek.setDate(now.getDate() - now.getDay());
+  const lastDayOfWeek = new Date(firstDayOfWeek);
+  lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+  return date >= firstDayOfWeek && date <= lastDayOfWeek;
+}
+
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     // Simulate loading
@@ -44,8 +60,22 @@ export default function NotificationsScreen() {
     );
   };
 
+  // Filter notifications
+  const filteredNotifications = notifications.filter(n => {
+    if (filter === 'all') return true;
+    const date = new Date(n.createdAt);
+    if (filter === 'today') {
+      const now = new Date();
+      return date.toDateString() === now.toDateString();
+    }
+    if (filter === 'week') {
+      return isThisWeek(date);
+    }
+    return true;
+  });
+
   // Group notifications by date
-  const grouped = notifications.reduce((acc, notif) => {
+  const grouped = filteredNotifications.reduce((acc, notif) => {
     const date = new Date(notif.createdAt).toDateString();
     if (!acc[date]) acc[date] = [];
     acc[date].push(notif);
@@ -61,7 +91,7 @@ export default function NotificationsScreen() {
     );
   }
 
-  if (notifications.length === 0) {
+  if (filteredNotifications.length === 0) {
     return (
       <View style={styles.centered}>
         <Icon name="notifications-off-outline" size={64} color="#d1d5db" style={{ marginBottom: 12 }} />
@@ -72,44 +102,59 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <FlatList
-      data={groupKeys}
-      keyExtractor={date => date}
-      contentContainerStyle={styles.listContent}
-      renderItem={({ item: date }) => (
-        <View>
-          <Text style={styles.dateHeader}>{date}</Text>
-          {grouped[date].map((notif: any, idx: number) => (
-            <TouchableOpacity
-              key={notif.id}
-              style={[styles.card, !notif.read && styles.cardUnread]}
-              activeOpacity={0.85}
-              onPress={() => markAsRead(notif.id)}
-            >
-              <View style={styles.iconWrap}>
-                <Icon name={typeIcon[notif.type] || 'notifications-outline'} size={28} color={notif.read ? '#888' : '#2563eb'} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.message, !notif.read && styles.messageUnread]}>{notif.message}</Text>
-                <View style={styles.metaRow}>
-                  {notif.groupName && (
-                    <Text style={styles.groupName}>{notif.groupName}</Text>
-                  )}
-                  <Text style={styles.time}>{formatDate(notif.createdAt)}</Text>
+    <View style={{ flex: 1 }}>
+      {/* Time Filter Segmented Control */}
+      <View style={styles.filterRow}>
+        {FILTERS.map(f => (
+          <TouchableOpacity
+            key={f.value}
+            style={[styles.filterBtn, filter === f.value && styles.filterBtnActive]}
+            onPress={() => setFilter(f.value)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterText, filter === f.value && styles.filterTextActive]}>{f.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <FlatList
+        data={groupKeys}
+        keyExtractor={date => date}
+        contentContainerStyle={styles.listContent}
+        renderItem={({ item: date }) => (
+          <View>
+            <Text style={styles.dateHeader}>{date}</Text>
+            {grouped[date].map((notif: any, idx: number) => (
+              <TouchableOpacity
+                key={notif.id}
+                style={[styles.card, !notif.read && styles.cardUnread]}
+                activeOpacity={0.85}
+                onPress={() => markAsRead(notif.id)}
+              >
+                <View style={styles.iconWrap}>
+                  <Icon name={typeIcon[notif.type] || 'notifications-outline'} size={28} color={notif.read ? '#888' : '#2563eb'} />
                 </View>
-              </View>
-              {!notif.read && <View style={styles.unreadDot} />}
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.message, !notif.read && styles.messageUnread]}>{notif.message}</Text>
+                  <View style={styles.metaRow}>
+                    {notif.groupName && (
+                      <Text style={styles.groupName}>{notif.groupName}</Text>
+                    )}
+                    <Text style={styles.time}>{formatDate(notif.createdAt)}</Text>
+                  </View>
+                </View>
+                {!notif.read && <View style={styles.unreadDot} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   listContent: {
-    paddingHorizontal: 2,
+    paddingHorizontal: 0,
     paddingTop: 16,
     paddingBottom: 32,
   },
@@ -120,7 +165,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    marginHorizontal: 2,
+    marginHorizontal: 16, // less wide than before
     shadowColor: '#2563eb',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -175,7 +220,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#2563eb',
     marginBottom: 6,
-    marginLeft: 4,
+    marginLeft: 20,
     marginTop: 10,
   },
   centered: {
@@ -193,5 +238,31 @@ const styles = StyleSheet.create({
   emptySubtitle: {
     fontSize: 15,
     color: '#888',
+  },
+  filterRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    marginTop: 8,
+    gap: 8,
+  },
+  filterBtn: {
+    paddingVertical: 7,
+    paddingHorizontal: 18,
+    borderRadius: 20,
+    backgroundColor: '#f3f4f6',
+    marginHorizontal: 4,
+  },
+  filterBtnActive: {
+    backgroundColor: '#2563eb',
+  },
+  filterText: {
+    color: '#222',
+    fontWeight: '500',
+    fontSize: 15,
+  },
+  filterTextActive: {
+    color: '#fff',
   },
 }); 
