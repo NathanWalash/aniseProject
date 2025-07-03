@@ -10,6 +10,9 @@ const groups = [
     members: 157,
     creator: 'John Smith',
     created: '10 June 2025',
+    mandate: 'To provide affordable car insurance for Surrey residents by pooling resources and negotiating better rates.',
+    isCharity: false,
+    creatorDescription: null
   },
   {
     name: 'Biker Holiday Pot',
@@ -18,6 +21,9 @@ const groups = [
     members: 5657,
     creator: 'John Smith',
     created: '14 May 2005',
+    mandate: 'To help bikers save together for group holidays and adventures.',
+    isCharity: false,
+    creatorDescription: null
   },
   {
     name: 'School Insurance',
@@ -26,6 +32,9 @@ const groups = [
     members: 10,
     creator: 'John Smith',
     created: '1 January 2025',
+    mandate: 'To ensure all students and staff are protected with comprehensive school insurance.',
+    isCharity: false,
+    creatorDescription: null
   },
   {
     name: 'Travel Insurance',
@@ -34,6 +43,9 @@ const groups = [
     members: 320,
     creator: 'Jane Doe',
     created: '5 March 2023',
+    mandate: 'To provide group travel insurance for frequent travelers at a reduced cost.',
+    isCharity: false,
+    creatorDescription: null
   },
   {
     name: 'Pet Insurance',
@@ -42,6 +54,9 @@ const groups = [
     members: 80,
     creator: 'Alice Smith',
     created: '12 July 2022',
+    mandate: 'To offer affordable pet insurance for all types of pets.',
+    isCharity: false,
+    creatorDescription: null
   },
   {
     name: 'Home Insurance',
@@ -50,6 +65,9 @@ const groups = [
     members: 45,
     creator: 'Bob Brown',
     created: '20 August 2021',
+    mandate: 'To protect homes and belongings through collective insurance.',
+    isCharity: false,
+    creatorDescription: null
   },
   {
     name: 'Gadget Cover',
@@ -58,6 +76,9 @@ const groups = [
     members: 210,
     creator: 'Charlie Green',
     created: '2 February 2024',
+    mandate: 'To insure gadgets and electronics for group members.',
+    isCharity: false,
+    creatorDescription: null
   },
   {
     name: 'Cycling Club',
@@ -66,6 +87,9 @@ const groups = [
     members: 150,
     creator: 'Daisy Blue',
     created: '18 November 2020',
+    mandate: 'To provide insurance and support for cycling enthusiasts.',
+    isCharity: false,
+    creatorDescription: null
   },
   {
     name: 'Student Health',
@@ -74,6 +98,9 @@ const groups = [
     members: 500,
     creator: 'Eve White',
     created: '9 September 2019',
+    mandate: 'To ensure students have access to affordable health insurance.',
+    isCharity: false,
+    creatorDescription: null
   },
   {
     name: 'Community Fund',
@@ -82,7 +109,35 @@ const groups = [
     members: 1000,
     creator: 'Frank Black',
     created: '1 January 2018',
+    mandate: 'To support community members in times of need through a shared fund.',
+    isCharity: false,
+    creatorDescription: null
   },
+  {
+    name: 'LA Wildfire Fund',
+    price: 'Any',
+    period: '/donation',
+    members: 3200,
+    creator: 'anise',
+    created: '15 April 2024',
+    mandate: 'To provide rapid, transparent, and community-driven financial support to those affected by wildfires in Los Angeles.',
+    isCharity: true,
+    creatorDescription: 'LA Wildfire Fund is a non-profit Charity DAO. All proceeds go directly to wildfire relief efforts in Los Angeles. Join to see where your donations end up!'
+  },
+];
+
+const groupDescriptions = [
+  'A group for Surrey residents to get affordable car insurance together. Share costs and enjoy exclusive benefits.',
+  'Join fellow bikers to save for the ultimate holiday adventure. One-off payment, big memories!',
+  'School insurance for students and staff. Secure, reliable, and tailored for educational needs.',
+  'Travel the world with peace of mind. Our group offers comprehensive yearly travel insurance.',
+  'Protect your furry friends with our pet insurance group. Affordable monthly plans for all pets.',
+  'Home insurance made easy for everyone. Join and get covered for less.',
+  'Gadget lovers unite! Cover your devices for a small monthly fee.',
+  'Cycling enthusiasts can now get yearly cover for all their rides.',
+  'Student health insurance for peace of mind during your studies.',
+  'A community fund for everyone. Contribute a little, help a lot.',
+  'LA Wildfire Fund is a non-profit Charity DAO. All proceeds go directly to wildfire relief efforts in Los Angeles. Join to see where your donations end up!',
 ];
 
 const FILTERS = ['All', 'Most Recent', 'Most Popular', 'More'];
@@ -100,6 +155,10 @@ export default function ExploreScreen() {
   });
   const [showFullHeader, setShowFullHeader] = useState(true);
   const lastScrollY = useRef(0);
+  const [selectedGroupIdx, setSelectedGroupIdx] = useState<number | null>(null);
+  const wildfireRaised = '£42,500'; // Example amount already raised
+  const wildfireDefaultAmount = 'Any amount';
+  const wildfireDefaultFrequency = 'One-off, Weekly, Monthly';
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -255,22 +314,104 @@ export default function ExploreScreen() {
         scrollEventThrottle={16}
       >
         {groups.map((group, idx) => (
-          <View key={idx} className="bg-white rounded-xl p-4 mb-4 shadow-sm px-3">
+          <View
+            key={idx}
+            className={`rounded-xl p-4 mb-4 shadow-sm px-3 ${group.isCharity ? '' : 'bg-white'}`}
+            style={group.isCharity ? { backgroundColor: '#F6F3FA', borderWidth: 2, borderColor: '#3B2364' } : {}}
+          >
             <View className="flex-row items-center mb-2">
               <View className="w-7 h-7 bg-gray-200 rounded-full items-center justify-center mr-2">
                 <Text className="text-lg">👥</Text>
               </View>
               <Text className="font-bold text-lg flex-1 text-[#23202A]">{group.name}</Text>
-              <Text className="font-bold text-lg text-[#23202A]">{group.price}</Text>
-              <Text className="text-base text-gray-500">{group.period}</Text>
+              {group.isCharity && (
+                <View style={{ backgroundColor: '#F59E42', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, marginRight: 6 }}>
+                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Charity DAO</Text>
+                </View>
+              )}
+              <Text style={{ color: group.isCharity ? '#3B2364' : '#23202A', fontWeight: 'bold', fontSize: 18 }}>{group.price}</Text>
+              <Text style={{ color: group.isCharity ? '#3B2364' : '#6B7280', fontSize: 16 }}>{group.period}</Text>
             </View>
-            <Text className="text-gray-500 mb-1">{group.members} members</Text>
-            <Text className="text-xs text-gray-500 mb-1">By <Text className="font-bold text-[#23202A]">{group.creator}</Text></Text>
-            <Text className="text-xs text-gray-500 mb-2">Created on {group.created}</Text>
-            <TouchableOpacity className="bg-[#140B33] rounded-lg py-3 mt-1" activeOpacity={0.85}><Text className="text-white text-center font-bold text-lg">Preview & Join</Text></TouchableOpacity>
+            <Text style={{ color: group.isCharity ? '#3B2364' : '#6B7280', marginBottom: 4 }}>{group.members} members</Text>
+            <Text style={{ color: group.isCharity ? '#3B2364' : '#6B7280', fontSize: 12, marginBottom: 4 }}>By <Text style={{ fontWeight: 'bold', color: group.isCharity ? '#3B2364' : '#23202A' }}>{group.creator}</Text></Text>
+            <Text style={{ color: group.isCharity ? '#3B2364' : '#6B7280', fontSize: 12, marginBottom: 8 }}>Created on {group.created}</Text>
+            <TouchableOpacity className="bg-[#140B33] rounded-lg py-3 mt-1" activeOpacity={0.85} onPress={() => setSelectedGroupIdx(idx)}>
+              <Text className="text-white text-center font-bold text-lg">Preview & Join</Text>
+            </TouchableOpacity>
           </View>
         ))}
       </ScrollView>
+      {/* Group Details Modal */}
+      <Modal
+        visible={selectedGroupIdx !== null}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setSelectedGroupIdx(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.18)', justifyContent: 'center', alignItems: 'center' }}>
+          {/* Removed glassmorphism overlay for solid card */}
+          <View style={{
+            backgroundColor: '#FAF8FC',
+            borderRadius: 28,
+            paddingVertical: 28,
+            paddingHorizontal: 28,
+            width: '92%',
+            maxWidth: 420,
+            shadowColor: '#3B2364',
+            shadowOpacity: 0.10,
+            shadowRadius: 24,
+            elevation: 12,
+            borderWidth: 1,
+            borderColor: 'rgba(123,104,238,0.08)',
+          }}>
+            {selectedGroupIdx !== null && (
+              <>
+                <Text style={{ fontSize: 30, fontWeight: 'bold', color: '#23202A', marginBottom: 10, fontFamily: 'System', letterSpacing: 0.2 }}>{groups[selectedGroupIdx].name}</Text>
+                <Text style={{ color: '#6B7280', fontSize: 17, marginBottom: 18, fontFamily: 'System', lineHeight: 24 }}>{groupDescriptions[selectedGroupIdx]}</Text>
+                {groups[selectedGroupIdx].isCharity && groups[selectedGroupIdx].creatorDescription && (
+                  <Text style={{ color: '#F59E42', fontStyle: 'italic', marginBottom: 12 }}>{groups[selectedGroupIdx].creatorDescription}</Text>
+                )}
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#3B2364', marginBottom: 2, fontFamily: 'System' }}>Mandate</Text>
+                <Text style={{ color: '#23202A', fontSize: 15, marginBottom: 22, fontFamily: 'System', lineHeight: 22 }}>{groups[selectedGroupIdx].mandate}</Text>
+                <View style={{ height: 1.5, backgroundColor: '#ECE6F6', marginVertical: 14, borderRadius: 1 }} />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 22 }}>
+                  <Text style={{ color: '#23202A', fontSize: 17, fontWeight: 'bold', fontFamily: 'System' }}>{groups[selectedGroupIdx].price} {groups[selectedGroupIdx].period}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+                    <Text style={{ color: '#23202A', fontSize: 17, fontWeight: 'bold', fontFamily: 'System' }}>{groups[selectedGroupIdx].members}</Text>
+                    <Text style={{ color: '#888', fontSize: 12, marginLeft: 4, marginBottom: 1 }}>contributors</Text>
+                  </View>
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: '#3B2364', marginBottom: 2, fontFamily: 'System' }}>Created by</Text>
+                <Text style={{ color: '#23202A', fontSize: 15, marginBottom: 26, fontFamily: 'System' }}><Text style={{ fontWeight: 'bold' }}>{groups[selectedGroupIdx].creator}</Text> - {groups[selectedGroupIdx].created}</Text>
+                {groups[selectedGroupIdx].name === 'LA Wildfire Fund' && (
+                  <View style={{ marginBottom: 12 }}>
+                    <Text style={{ color: '#3B2364', fontWeight: 'bold', marginBottom: 2 }}>Suggested Donation: <Text style={{ fontWeight: 'normal' }}>{wildfireDefaultAmount}</Text></Text>
+                    <Text style={{ color: '#3B2364', fontWeight: 'bold', marginBottom: 2 }}>Frequency: <Text style={{ fontWeight: 'normal' }}>{wildfireDefaultFrequency}</Text></Text>
+                    <Text style={{ color: '#3B2364', fontWeight: 'bold' }}>Already Raised: <Text style={{ fontWeight: 'normal' }}>{wildfireRaised}</Text></Text>
+                  </View>
+                )}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 }}>
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: '#3B2364', borderRadius: 8, paddingVertical: 15, paddingHorizontal: 20, marginRight: 10, shadowColor: '#3B2364', shadowOpacity: 0.12, shadowRadius: 8, elevation: 2 }}
+                    onPress={() => {/* TODO: Request to join logic */}}
+                  >
+                    <Text style={{ color: 'white', fontSize: 18, textAlign: 'center', fontWeight: '500', letterSpacing: 0.2 }}>Request to Join</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: '#ECE6F6', borderRadius: 8, paddingVertical: 15, paddingHorizontal: 18, marginLeft: 10 }}
+                    onPress={() => {/* TODO: Message owner logic */}}
+                  >
+                    <Text style={{ color: '#3B2364', fontSize: 18, textAlign: 'center', fontWeight: '500', letterSpacing: 0.2 }}>Enquire Further</Text>
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity style={{ alignSelf: 'center', marginTop: 22 }} onPress={() => setSelectedGroupIdx(null)}>
+                  <Text style={{ color: '#6B7280', fontSize: 17, fontWeight: '500', letterSpacing: 0.2 }}>Close</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 } 
