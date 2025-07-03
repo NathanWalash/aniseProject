@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Image, ScrollView } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import exampleNotifications from './exampleNotifications.json';
+import { Swipeable } from 'react-native-gesture-handler';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
@@ -47,7 +49,6 @@ export default function NotificationsScreen() {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    // Simulate loading
     setTimeout(() => {
       setNotifications(exampleNotifications);
       setLoading(false);
@@ -60,16 +61,33 @@ export default function NotificationsScreen() {
     );
   };
 
-  // Filter notifications
+  const deleteNotification = (id: string) => {
+    setNotifications(notifications => notifications.filter(n => n.id !== id));
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(notifications => notifications.map(n => ({ ...n, read: true })));
+  };
+
+  // DEMO: set 'today' to a fixed date in 2024
+  const DEMO_TODAY = new Date('2024-06-09T12:00:00Z'); // Sunday, June 9, 2024
   const filteredNotifications = notifications.filter(n => {
     if (filter === 'all') return true;
-    const date = new Date(n.createdAt);
+    const notifDate = new Date(n.createdAt);
+    // Use DEMO_TODAY for 'today' and 'week' filters
+    const now = DEMO_TODAY;
     if (filter === 'today') {
-      const now = new Date();
-      return date.toDateString() === now.toDateString();
+      return notifDate.getFullYear() === now.getFullYear() &&
+        notifDate.getMonth() === now.getMonth() &&
+        notifDate.getDate() === now.getDate();
     }
     if (filter === 'week') {
-      return isThisWeek(date);
+      // Use DEMO_TODAY as the reference for the week
+      const firstDayOfWeek = new Date(now);
+      firstDayOfWeek.setDate(now.getDate() - now.getDay());
+      const lastDayOfWeek = new Date(firstDayOfWeek);
+      lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+      return notifDate >= firstDayOfWeek && notifDate <= lastDayOfWeek;
     }
     return true;
   });
@@ -81,7 +99,13 @@ export default function NotificationsScreen() {
     acc[date].push(notif);
     return acc;
   }, {} as Record<string, any[]>);
-  const groupKeys = Object.keys(grouped).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  // Sort so DEMO_TODAY group ("Today") is first, then others descending
+  const groupKeys = Object.keys(grouped).sort((a, b) => {
+    const demoTodayStr = DEMO_TODAY.toDateString();
+    if (a === demoTodayStr) return -1;
+    if (b === demoTodayStr) return 1;
+    return new Date(b).getTime() - new Date(a).getTime();
+  });
 
   if (loading) {
     return (
@@ -91,18 +115,88 @@ export default function NotificationsScreen() {
     );
   }
 
-  if (filteredNotifications.length === 0) {
-    return (
-      <View style={styles.centered}>
-        <Icon name="notifications-off-outline" size={64} color="#d1d5db" style={{ marginBottom: 12 }} />
-        <Text style={styles.emptyTitle}>You're all caught up!</Text>
-        <Text style={styles.emptySubtitle}>No notifications at the moment.</Text>
-      </View>
-    );
+  // Always show filter buttons, even if empty state
+  const renderEmptyState = () => (
+    <View style={styles.centered}>
+      <Icon name="notifications-off-outline" size={64} color="#d1d5db" style={{ marginBottom: 12 }} />
+      <Text style={styles.emptyTitle}>You're all caught up!</Text>
+      <Text style={styles.emptySubtitle}>No notifications at the moment.</Text>
+    </View>
+  );
+
+  // Animated pulse for unread dot
+  function UnreadDotPulse({ show }: { show: boolean }) {
+    const scale = useSharedValue(1);
+    useEffect(() => {
+      if (show) {
+        scale.value = withRepeat(
+          withSequence(
+            withTiming(1.2, { duration: 400 }),
+            withTiming(1, { duration: 400 })
+          ),
+          -1,
+          true
+        );
+      } else {
+        scale.value = 1;
+      }
+    }, [show]);
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+    }));
+    if (!show) return null;
+    return <Animated.View style={[styles.unreadDot, animatedStyle]} />;
   }
 
+  // Swipeable right actions
+  const renderRightActions = (notif: any) => (
+    <View style={{ flexDirection: 'row', height: '100%' }}>
+      {!notif.read && (
+        <TouchableOpacity
+          style={[styles.swipeAction, { backgroundColor: '#2563eb' }]}
+          onPress={() => markAsRead(notif.id)}
+        >
+          <Icon name="checkmark-done-outline" size={22} color="#fff" />
+          <Text style={styles.swipeText}>Read</Text>
+        </TouchableOpacity>
+      )}
+      <TouchableOpacity
+        style={[styles.swipeAction, { backgroundColor: '#ef4444' }]}
+        onPress={() => deleteNotification(notif.id)}
+      >
+        <Icon name="trash-outline" size={22} color="#fff" />
+        <Text style={styles.swipeText}>Delete</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Handle card tap: just mark as read
+  const handleCardPress = (notif: any) => {
+    markAsRead(notif.id);
+  };
+
+  // Handle long press
+  const handleLongPress = (notif: any) => {
+    Alert.alert(
+      'Notification Options',
+      'Choose an action:',
+      [
+        { text: 'Mute this type', onPress: () => {} },
+        { text: 'View details', onPress: () => {} },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      {/* Sticky Header Bar */}
+      <View style={styles.headerBar}>
+        <Text style={styles.headerTitle}>Notifications</Text>
+        <TouchableOpacity onPress={markAllAsRead} style={styles.headerBtn} accessibilityLabel="Mark all as read">
+          <Icon name="checkmark-done-outline" size={24} color="#2563eb" />
+        </TouchableOpacity>
+      </View>
       {/* Time Filter Segmented Control */}
       <View style={styles.filterRow}>
         {FILTERS.map(f => (
@@ -116,46 +210,77 @@ export default function NotificationsScreen() {
           </TouchableOpacity>
         ))}
       </View>
-      <FlatList
-        data={groupKeys}
-        keyExtractor={date => date}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item: date }) => (
-          <View>
-            <Text style={styles.dateHeader}>{date}</Text>
-            {grouped[date].map((notif: any, idx: number) => (
-              <TouchableOpacity
-                key={notif.id}
-                style={[styles.card, !notif.read && styles.cardUnread]}
-                activeOpacity={0.85}
-                onPress={() => markAsRead(notif.id)}
-              >
-                <View style={styles.iconWrap}>
-                  <Icon name={typeIcon[notif.type] || 'notifications-outline'} size={28} color={notif.read ? '#888' : '#2563eb'} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.message, !notif.read && styles.messageUnread]}>{notif.message}</Text>
-                  <View style={styles.metaRow}>
-                    {notif.groupName && (
-                      <Text style={styles.groupName}>{notif.groupName}</Text>
-                    )}
-                    <Text style={styles.time}>{formatDate(notif.createdAt)}</Text>
-                  </View>
-                </View>
-                {!notif.read && <View style={styles.unreadDot} />}
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      />
+      {filteredNotifications.length === 0 ? (
+        renderEmptyState()
+      ) : (
+        <FlatList
+          data={groupKeys}
+          keyExtractor={date => date}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item: date }) => (
+            <View>
+              <Text style={styles.dateHeader}>{date}</Text>
+              {grouped[date].map((notif: any, idx: number) => (
+                <Swipeable
+                  key={notif.id}
+                  renderRightActions={() => renderRightActions(notif)}
+                  overshootRight={false}
+                >
+                  <TouchableOpacity
+                    style={[styles.card, !notif.read && styles.cardUnread]}
+                    activeOpacity={0.85}
+                    onPress={() => handleCardPress(notif)}
+                    onLongPress={() => handleLongPress(notif)}
+                  >
+                    <View style={styles.iconWrap}>
+                      <Icon name={typeIcon[notif.type] || 'notifications-outline'} size={28} color={notif.read ? '#888' : '#2563eb'} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.message, !notif.read && styles.messageUnread]}>{notif.message}</Text>
+                      <View style={styles.metaRow}>
+                        {notif.groupName && (
+                          <Text style={styles.groupName}>{notif.groupName}</Text>
+                        )}
+                        <Text style={styles.time}>{formatDate(notif.createdAt)}</Text>
+                      </View>
+                    </View>
+                    <UnreadDotPulse show={!notif.read} />
+                  </TouchableOpacity>
+                </Swipeable>
+              ))}
+            </View>
+          )}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Platform.OS === 'android' ? 36 : 56,
+    paddingBottom: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    zIndex: 10,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#222',
+  },
+  headerBtn: {
+    padding: 6,
+    borderRadius: 20,
+  },
   listContent: {
     paddingHorizontal: 0,
-    paddingTop: 16,
+    paddingTop: 8,
     paddingBottom: 32,
   },
   card: {
@@ -165,7 +290,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    marginHorizontal: 16, // less wide than before
+    marginHorizontal: 16,
     shadowColor: '#2563eb',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -264,5 +389,20 @@ const styles = StyleSheet.create({
   },
   filterTextActive: {
     color: '#fff',
+  },
+  swipeAction: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 72,
+    height: '90%',
+    marginVertical: 6,
+    borderRadius: 14,
+    marginRight: 8,
+    flexDirection: 'column',
+  },
+  swipeText: {
+    color: '#fff',
+    fontSize: 12,
+    marginTop: 2,
   },
 }); 

@@ -12,6 +12,7 @@ import WelcomeSplashScreens from './src/screens/landing/WelcomeSplashScreens';
 import { jwtDecode } from 'jwt-decode';
 import { API_BASE_URL } from './src/utils/api';
 import { FIREBASE_API_KEY } from './src/utils/firebase';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 // One-time helpful log for API_BASE_URL
 console.log('[INFO] API_BASE_URL is set to:', API_BASE_URL);
@@ -101,7 +102,7 @@ export default function App() {
   if (!userToken) {
     if (showWelcome) {
       return <WelcomeSplashScreens onDone={() => { setShowWelcome(false); setScreen(undefined); }} />;
-  }
+    }
     if (screen === undefined) {
     return (
       <LandingScreen
@@ -128,7 +129,9 @@ export default function App() {
 
   // After login/signup, show the main app navigation (no global logout button)
   return (
-    <Navigation user={userToken} onLogout={handleLogout} />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Navigation user={userToken} onLogout={handleLogout} />
+    </GestureHandlerRootView>
   );
 }
 
