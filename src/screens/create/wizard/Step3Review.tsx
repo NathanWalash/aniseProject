@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Linking, ActivityIndicator, Alert } from 'react-native';
 import type { Template } from './CreateWizard';
 import { deployAnise } from './deployAnise';
 import AsyncStorage from '@react-native-async-storage/async-storage';
