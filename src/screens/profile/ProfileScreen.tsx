@@ -1,5 +1,5 @@
 // src/screens/HomeScreen.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SafeAreaView,
   Text,
@@ -8,10 +8,16 @@ import {
   View,
   TextInput,
   ScrollView,
+  StyleSheet,
+  Image,
+  Alert,
+  LayoutAnimation,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 
 interface Profile {
   firstName: string;
@@ -71,6 +77,10 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [mandateId, setMandateId] = useState<string | null>(null);
   const [loadingMandate, setLoadingMandate] = useState(false);
   const isFocused = useIsFocused();
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [avatarUri, setAvatarUri] = useState<string | null>(null); // Placeholder for real avatar
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -108,6 +118,30 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
     fetchMandate();
   }, []);
 
+  // Floating label input for modern look
+  const FloatingInput = ({ label, value, onChangeText, ...props }: any) => {
+    const [focused, setFocused] = useState(false);
+    const [localValue, setLocalValue] = useState(value ?? '');
+    useEffect(() => { setLocalValue(value ?? ''); }, [value]);
+    const showFloating = focused || (localValue && localValue.length > 0);
+    return (
+      <View style={styles.floatingInputContainer}>
+        <Text style={[styles.floatingLabel, showFloating && styles.floatingLabelActive]} pointerEvents="none">{label}</Text>
+        <TextInput
+          value={localValue}
+          onChangeText={setLocalValue}
+          onFocus={() => setFocused(true)}
+          onEndEditing={() => {
+            setFocused(false);
+            if (onChangeText) onChangeText(localValue);
+          }}
+          style={styles.floatingInput}
+          {...props}
+        />
+      </View>
+    );
+  };
+
   const saveProfile = async () => {
     setSavingProfile(true);
     setStatus(null);
@@ -126,6 +160,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
       if (!res.ok) throw new Error(data.error || 'Failed to update profile');
       setStatus({ message: 'Profile updated.' });
       setProfile({ ...profile, firstName, lastName, dateOfBirth: dob, email: profile?.email } as Profile);
+      setShowEditProfile(false);
     } catch (err: any) {
       setStatus({ message: err.message, error: true });
     } finally {
@@ -143,6 +178,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
     try {
       // TODO: Update user email by calling backend endpoint
       setStatus({ message: 'Email updated. Log back in.' });
+      setShowEmail(false);
     } catch (err) {
       setStatus({ message: (err as Error).message, error: true });
     } finally {
@@ -160,6 +196,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
     try {
       // TODO: Update user password by calling backend endpoint
       setStatus({ message: 'Password updated.' });
+      setShowPassword(false);
     } catch (err) {
       setStatus({ message: (err as Error).message, error: true });
     } finally {
@@ -173,6 +210,14 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
     if (onLogout) onLogout();
   };
 
+  // Animate expand/collapse
+  const toggleSection = (setter: (v: boolean) => void, value: boolean) => {
+    LayoutAnimation.configureNext(
+      Platform.OS === 'ios' ? LayoutAnimation.Presets.easeInEaseOut : LayoutAnimation.create(200, 'easeInEaseOut', 'opacity')
+    );
+    setter(!value);
+  };
+
   if (loading) {
     return (
       <SafeAreaView className="flex-1 justify-center items-center bg-gray-100">
@@ -182,161 +227,309 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
-      <ScrollView contentContainerStyle={{ alignItems: 'center', padding: 16 }}>
+    <SafeAreaView style={styles.root}>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         {/* Profile Card */}
-        <View className="bg-white rounded-2xl p-6 w-full max-w-md shadow-card mb-6 items-center">
-          <View className="w-20 h-20 rounded-full bg-brand-100 mb-4 items-center justify-center">
-            {/* Placeholder for avatar */}
-            <Text className="text-4xl text-brand-500 font-bold">{profile?.firstName?.[0] || ''}{profile?.lastName?.[0] || ''}</Text>
+        <View style={styles.card}>
+          <View style={styles.avatarWrap}>
+            {avatarUri ? (
+              <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
+            ) : (
+              <View style={styles.avatarFallback}>
+                <Text style={styles.avatarInitials}>{profile?.firstName?.[0] || ''}{profile?.lastName?.[0] || ''}</Text>
+              </View>
+            )}
+            <TouchableOpacity style={styles.avatarEdit} onPress={() => Alert.alert('Avatar', 'Change avatar coming soon!')}>
+              <Icon name="camera-outline" size={18} color="#2563eb" />
+            </TouchableOpacity>
           </View>
-          <Text className="text-2xl font-bold text-center mb-1">
-            {profile?.firstName} {profile?.lastName}
-          </Text>
-          <Text className="text-base text-gray-600 text-center mb-1">
-            {profile?.email}
-          </Text>
-          <Text className="text-base text-gray-400 text-center mb-1">
-            DOB: {profile?.dateOfBirth}
-          </Text>
+          <Text style={styles.profileName}>{profile?.firstName} {profile?.lastName}</Text>
+          <Text style={styles.profileEmail}>{profile?.email}</Text>
+          <Text style={styles.profileDob}>DOB: {profile?.dateOfBirth}</Text>
         </View>
-
-        {/* Status Message */}
-        {status && (
-          <Text className="text-green-600 text-center mb-2">{status.message}</Text>
-        )}
-        {status && status.error && (
-          <Text className="text-red-500 text-center mb-2">{status.message}</Text>
-        )}
 
         {/* Edit Profile Section */}
-        <View className="bg-white rounded-2xl p-6 w-full max-w-md shadow-card mb-6">
-          <Text className="text-lg font-semibold mb-2">Edit Profile</Text>
-          <TextInput
-            className="border-b border-gray-300 pb-2 mb-3"
-            placeholder="First Name"
-            value={firstName}
-            onChangeText={setFirstName}
-          />
-          <TextInput
-            className="border-b border-gray-300 pb-2 mb-3"
-            placeholder="Last Name"
-            value={lastName}
-            onChangeText={setLastName}
-          />
-          <TextInput
-            className="border-b border-gray-300 pb-2 mb-4"
-            placeholder="DOB (YYYY-MM-DD)"
-            value={dob}
-            onChangeText={setDob}
-          />
-          <TouchableOpacity
-            onPress={saveProfile}
-            disabled={savingProfile}
-            className="bg-brand-500 rounded-full py-2"
-          >
-            {savingProfile ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white text-center">Save Profile</Text>
-            )}
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.sectionHeaderRow} onPress={() => toggleSection(setShowEditProfile, showEditProfile)}>
+            <Text style={styles.cardHeader}>Edit Profile</Text>
+            <Icon name={showEditProfile ? 'chevron-up-outline' : 'chevron-down-outline'} size={22} color="#2563eb" />
           </TouchableOpacity>
-        </View>
-
-        {/* Change Email Section */}
-        <View className="bg-white rounded-2xl p-6 w-full max-w-md shadow-card mb-6">
-          <Text className="text-lg font-semibold mb-2">Change Email</Text>
-          <TextInput
-            className="border-b border-gray-300 pb-2 mb-3"
-            placeholder="New Email"
-            value={newEmail}
-            onChangeText={setNewEmail}
-            autoCapitalize="none"
-          />
-          <TextInput
-            className="border-b border-gray-300 pb-2 mb-4"
-            placeholder="Current Password"
-            secureTextEntry
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-          />
-          <TouchableOpacity
-            onPress={saveEmail}
-            disabled={savingEmail}
-            className="bg-brand-500 rounded-full py-2"
-          >
-            {savingEmail ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white text-center">Update Email</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Change Password Section */}
-        <View className="bg-white rounded-2xl p-6 w-full max-w-md shadow-card mb-6">
-          <Text className="text-lg font-semibold mb-2">Change Password</Text>
-          <TextInput
-            className="border-b border-gray-300 pb-2 mb-3"
-            placeholder="Current Password"
-            secureTextEntry
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-          />
-          <TextInput
-            className="border-b border-gray-300 pb-2 mb-3"
-            placeholder="New Password"
-            secureTextEntry
-            value={newPassword}
-            onChangeText={setNewPassword}
-          />
-          <TextInput
-            className="border-b border-gray-300 pb-2 mb-4"
-            placeholder="Confirm Password"
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
-          <TouchableOpacity
-            onPress={savePassword}
-            disabled={savingPassword}
-            className="bg-brand-500 rounded-full py-2"
-          >
-            {savingPassword ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-white text-center">Update Password</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Payment Method Section */}
-        <View className="mt-6 p-4 bg-white rounded-2xl w-full max-w-md self-center shadow-card">
-          <Text className="font-bold text-lg mb-2">Payment Method</Text>
-          {loadingMandate ? (
-            <ActivityIndicator />
-          ) : !mandateId ? (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('PaymentsLinkFlow')}
-              className="bg-brand-500 rounded-full py-3"
-            >
-              <Text className="text-white text-center font-semibold">Link GoCardless</Text>
-            </TouchableOpacity>
-          ) : (
+          {showEditProfile && (
             <View>
-              <Text className="text-green-600 mb-2">✅ GoCardless linked (Mandate: {mandateId})</Text>
+              <FloatingInput label="First Name" value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
+              <FloatingInput label="Last Name" value={lastName} onChangeText={setLastName} autoCapitalize="words" />
+              <FloatingInput label="Date of Birth" value={dob} onChangeText={setDob} placeholder="YYYY-MM-DD" />
+              <TouchableOpacity style={styles.saveBtn} onPress={saveProfile} disabled={savingProfile}>
+                {savingProfile ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save</Text>}
+              </TouchableOpacity>
             </View>
           )}
         </View>
 
-        {/* Log Out Button */}
-        <TouchableOpacity
-          onPress={handleLogout}
-          className="bg-red-500 rounded-full py-3 w-full max-w-md mt-8"
-        >
-          <Text className="text-white text-center font-semibold">Log Out</Text>
+        {/* Change Email Section */}
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.sectionHeaderRow} onPress={() => toggleSection(setShowEmail, showEmail)}>
+            <Text style={styles.cardHeader}>Change Email</Text>
+            <Icon name={showEmail ? 'chevron-up-outline' : 'chevron-down-outline'} size={22} color="#2563eb" />
+          </TouchableOpacity>
+          {showEmail && (
+            <View>
+              <FloatingInput label="New Email" value={newEmail} onChangeText={setNewEmail} autoCapitalize="none" keyboardType="email-address" />
+              <FloatingInput label="Current Password" value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry />
+              <TouchableOpacity style={styles.saveBtn} onPress={saveEmail} disabled={savingEmail}>
+                {savingEmail ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save</Text>}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Change Password Section */}
+        <View style={styles.card}>
+          <TouchableOpacity style={styles.sectionHeaderRow} onPress={() => toggleSection(setShowPassword, showPassword)}>
+            <Text style={styles.cardHeader}>Change Password</Text>
+            <Icon name={showPassword ? 'chevron-up-outline' : 'chevron-down-outline'} size={22} color="#2563eb" />
+          </TouchableOpacity>
+          {showPassword && (
+            <View>
+              <FloatingInput label="Current Password" value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry />
+              <FloatingInput label="New Password" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+              <FloatingInput label="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+              <TouchableOpacity style={styles.saveBtn} onPress={savePassword} disabled={savingPassword}>
+                {savingPassword ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save</Text>}
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* GoCardless/Mandate Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardHeader}>GoCardless</Text>
+          {loadingMandate ? (
+            <ActivityIndicator color="#2563eb" />
+          ) : mandateId ? (
+            <View style={styles.mandateRow}>
+              <Icon name="checkmark-circle" size={18} color="#22c55e" style={{ marginRight: 8 }} />
+              <Text style={styles.mandateText}>Linked (Mandate ID: {mandateId})</Text>
+            </View>
+          ) : (
+            <View style={styles.mandateRow}>
+              <Icon name="close-circle" size={18} color="#ef4444" style={{ marginRight: 8 }} />
+              <Text style={styles.mandateText}>Not Linked</Text>
+              <TouchableOpacity style={styles.linkBtn} onPress={() => Alert.alert('Link GoCardless', 'Linking coming soon!')}>
+                <Text style={styles.linkBtnText}>Link Now</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+
+        {/* Status Message */}
+        {status && (
+          <View style={[styles.statusMsg, status.error ? styles.statusMsgError : styles.statusMsgSuccess]}>
+            <Text style={styles.statusMsgText}>{status.message}</Text>
+          </View>
+        )}
+
+        {/* Logout Button */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Icon name="log-out-outline" size={20} color="#ef4444" style={{ marginRight: 8 }} />
+          <Text style={styles.logoutBtnText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  scrollContent: {
+    paddingHorizontal: 8,
+    paddingTop: 16,
+    paddingBottom: 32,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 22,
+    marginHorizontal: 10,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  avatarWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    position: 'relative',
+  },
+  avatarImg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#e0e7ff',
+  },
+  avatarFallback: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#e0e7ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    fontSize: 32,
+    color: '#2563eb',
+    fontWeight: 'bold',
+  },
+  avatarEdit: {
+    position: 'absolute',
+    right: 8,
+    bottom: 8,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 4,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.10,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#222',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  profileEmail: {
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  profileDob: {
+    fontSize: 15,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  cardHeader: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#2563eb',
+    marginBottom: 0,
+  },
+  floatingInputContainer: {
+    position: 'relative',
+    marginBottom: 18,
+  },
+  floatingLabel: {
+    position: 'absolute',
+    left: 12,
+    top: 12,
+    fontSize: 15,
+    color: '#888',
+    zIndex: 2,
+    backgroundColor: 'transparent',
+  },
+  floatingLabelActive: {
+    top: -10,
+    left: 8,
+    fontSize: 12,
+    color: '#2563eb',
+    backgroundColor: '#fff',
+    paddingHorizontal: 2,
+  },
+  floatingInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 12,
+    paddingTop: 22,
+    fontSize: 15,
+    backgroundColor: '#fff',
+    color: '#222',
+  },
+  saveBtn: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  saveBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  mandateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  mandateText: {
+    color: '#2563eb',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  linkBtn: {
+    marginLeft: 12,
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+  },
+  linkBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  statusMsg: {
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  statusMsgError: {
+    backgroundColor: '#fee2e2',
+  },
+  statusMsgSuccess: {
+    backgroundColor: '#d1fae5',
+  },
+  statusMsgText: {
+    color: '#222',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ef4444',
+    paddingVertical: 14,
+    marginTop: 10,
+    marginBottom: 24,
+    marginHorizontal: 2,
+  },
+  logoutBtnText: {
+    color: '#ef4444',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+});
