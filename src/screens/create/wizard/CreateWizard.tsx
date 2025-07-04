@@ -63,15 +63,15 @@ export default function CreateWizard() {
   let navButtons = null;
   if (step === 1) {
     navButtons = (
-      <View style={{ width: '100%', padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb' }}>
+      <>
         <TouchableOpacity
-          style={{ width: '100%', paddingVertical: 14, borderRadius: 8, backgroundColor: selectedTemplate ? '#2563eb' : '#d1d5db' }}
+          style={[styles.navButton, selectedTemplate ? styles.navButtonPrimary : styles.navButtonDisabled]}
           disabled={!selectedTemplate}
           onPress={() => selectedTemplate && handleSelectTemplate(selectedTemplate)}
         >
-          <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>Next Step</Text>
+          <Text style={styles.navButtonTextPrimary}>Next Step</Text>
         </TouchableOpacity>
-      </View>
+      </>
     );
   } else if (step === 2 && selectedTemplate) {
     // Check if all required fields are filled
@@ -89,44 +89,42 @@ export default function CreateWizard() {
     });
     const allFilled = allBaseFilled && allModuleFilled;
     navButtons = (
-      <View style={{ width: '100%', padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb', flexDirection: 'row' }}>
+      <>
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
+          style={[styles.navButton, styles.navButtonSecondary]}
           onPress={() => goToStep(1)}
         >
-          <Text style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>Previous Step</Text>
+          <Text style={styles.navButtonTextSecondary}>Previous Step</Text>
         </TouchableOpacity>
-        <View style={{ width: 8 }} />
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: allFilled ? '#2563eb' : '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
+          style={[styles.navButton, allFilled ? styles.navButtonPrimary : styles.navButtonDisabled]}
           onPress={() => handleConfigNext(config)}
           disabled={!allFilled}
         >
-          <Text style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 16, color: '#fff' }}>Next Step</Text>
+          <Text style={styles.navButtonTextPrimary}>Next Step</Text>
         </TouchableOpacity>
-      </View>
+      </>
     );
   } else if (step === 3 && selectedTemplate) {
     navButtons = (
-      <View style={{ width: '100%', padding: 16, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb', flexDirection: 'row' }}>
+      <>
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
+          style={[styles.navButton, styles.navButtonSecondary]}
           onPress={() => goToStep(2)}
         >
-          <Text style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 16 }}>Previous Step</Text>
+          <Text style={styles.navButtonTextSecondary}>Previous Step</Text>
         </TouchableOpacity>
-        <View style={{ width: 8 }} />
         <TouchableOpacity
-          style={{ flex: 1, backgroundColor: agreed ? '#2563eb' : '#d1d5db', borderRadius: 8, paddingVertical: 14 }}
+          style={[styles.navButton, agreed ? styles.navButtonPrimary : styles.navButtonDisabled]}
           onPress={() => {
             // Deploy logic should be handled in Step3Review, but for now just reset
             reset();
           }}
           disabled={!agreed}
         >
-          <Text style={{ textAlign: 'center', fontWeight: 'bold', fontSize: 16, color: '#fff' }}>Deploy</Text>
+          <Text style={styles.navButtonTextPrimary}>Deploy</Text>
         </TouchableOpacity>
-      </View>
+      </>
     );
   }
 
@@ -158,7 +156,7 @@ export default function CreateWizard() {
         <ScrollView
           ref={scrollViewRef}
           style={{ flex: 1, marginTop: progressBarHeight, marginBottom: 88 }}
-          contentContainerStyle={{ minHeight: Dimensions.get('window').height - 160, paddingHorizontal: 24, paddingTop: 8 }}
+          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 24 }}
           keyboardShouldPersistTaps="handled"
         >
           <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, textAlign: 'center', color: '#222' }}>{stepTitles[step - 1]}</Text>
@@ -191,8 +189,8 @@ export default function CreateWizard() {
               setAgreed={setAgreed}
             />
           )}
-          {/* Subtle info link at the bottom of the scroll window */}
-          <View style={{ alignItems: 'center', marginTop: 0, marginBottom: 12 }}>
+          {/* Subtle info link directly after last form component */}
+          <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 12 }}>
             <TouchableOpacity
               onPress={() => setShowInfo(true)}
               style={{ flexDirection: 'row', alignItems: 'center', opacity: 0.7 }}
@@ -205,7 +203,7 @@ export default function CreateWizard() {
         </ScrollView>
       </View>
       {/* Navigation Buttons fixed at the bottom */}
-      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 3 }}>{navButtons}</View>
+      <View style={styles.stickyNav}>{navButtons}</View>
       {/* Splash Modal */}
       <Modal visible={showInfo} animationType="slide" onRequestClose={() => setShowInfo(false)} presentationStyle="fullScreen">
         <CreateSplashScreens onDone={() => setShowInfo(false)} />
@@ -222,11 +220,50 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
     backgroundColor: '#f8fafc',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
     paddingTop: 12,
     paddingBottom: 12,
     justifyContent: 'center',
     paddingHorizontal: 0,
+  },
+  stickyNav: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    padding: 12,
+    zIndex: 10,
+  },
+  navButton: {
+    flex: 1,
+    borderRadius: 8,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 4,
+  },
+  navButtonPrimary: {
+    backgroundColor: '#2563eb',
+  },
+  navButtonSecondary: {
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#2563eb',
+  },
+  navButtonDisabled: {
+    backgroundColor: '#d1d5db',
+  },
+  navButtonTextPrimary: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  navButtonTextSecondary: {
+    color: '#2563eb',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 }); 

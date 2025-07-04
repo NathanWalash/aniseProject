@@ -1,0 +1,102 @@
+[
+  {
+    "id": "notif_001",
+    "type": "invite",
+    "message": "You've been invited to join 'Green Investors' by Alice.",
+    "read": false,
+    "createdAt": "2024-06-01T12:34:56Z",
+    "link": "/groups/green-investors",
+    "groupId": "group_abc",
+    "groupName": "Green Investors"
+  },
+  {
+    "id": "notif_002",
+    "type": "membership",
+    "message": "Your request to join 'Green Investors' was approved.",
+    "read": false,
+    "createdAt": "2024-06-02T09:15:00Z",
+    "link": "/groups/green-investors",
+    "groupId": "group_abc",
+    "groupName": "Green Investors"
+  },
+  {
+    "id": "notif_003",
+    "type": "role",
+    "message": "You've been made an admin in 'Green Investors'.",
+    "read": true,
+    "createdAt": "2024-06-03T14:20:00Z",
+    "link": "/groups/green-investors",
+    "groupId": "group_abc",
+    "groupName": "Green Investors"
+  },
+  {
+    "id": "notif_004",
+    "type": "proposal",
+    "message": "A new proposal 'Fund Community Garden' was created in 'Green Investors'.",
+    "read": false,
+    "createdAt": "2024-06-04T10:00:00Z",
+    "link": "/proposals/xyz",
+    "groupId": "group_abc",
+    "groupName": "Green Investors"
+  },
+  {
+    "id": "notif_005",
+    "type": "voting",
+    "message": "Voting has started on 'Fund Community Garden'.",
+    "read": true,
+    "createdAt": "2024-06-04T12:00:00Z",
+    "link": "/proposals/xyz/vote",
+    "groupId": "group_abc",
+    "groupName": "Green Investors"
+  },
+  {
+    "id": "notif_006",
+    "type": "proposal_result",
+    "message": "Proposal 'Fund Community Garden' was approved.",
+    "read": false,
+    "createdAt": "2024-06-05T08:30:00Z",
+    "link": "/proposals/xyz",
+    "groupId": "group_abc",
+    "groupName": "Green Investors"
+  },
+  {
+    "id": "notif_007",
+    "type": "payment",
+    "message": "You received $10 from Green Investors.",
+    "read": false,
+    "createdAt": "2024-06-06T11:45:00Z",
+    "link": "/payments/123",
+    "groupId": "group_abc",
+    "groupName": "Green Investors"
+  },
+  {
+    "id": "notif_008",
+    "type": "payment_issue",
+    "message": "Your payment to 'Green Investors' failed.",
+    "read": true,
+    "createdAt": "2024-06-07T13:00:00Z",
+    "link": "/payments/123",
+    "groupId": "group_abc",
+    "groupName": "Green Investors"
+  },
+  {
+    "id": "notif_009",
+    "type": "subscription",
+    "message": "Your group subscription renews in 3 days.",
+    "read": false,
+    "createdAt": "2024-06-08T09:00:00Z",
+    "link": "/subscriptions/green-investors",
+    "groupId": "group_abc",
+    "groupName": "Green Investors"
+  },
+  {
+    "id": "notif_010",
+    "type": "reminder",
+    "message": "Green Investors' monthly meeting starts in 1 hour.",
+    "read": false,
+    "createdAt": "2024-06-09T15:00:00Z",
+    "link": "/events/meeting",
+    "groupId": "group_abc",
+    "groupName": "Green Investors"
+  }
+] 
