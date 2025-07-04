@@ -1,0 +1,27 @@
+[
+  {
+    "id": "1",
+    "name": "Surrey Car Insurance",
+    "members": 157,
+    "role": "Admin",
+    "created": "10 June 2025",
+    "status": "Active"
+  },
+  {
+    "id": "2",
+    "name": "Biker Holiday Pot",
+    "members": 5657,
+    "role": "Member",
+    "created": "14 May 2005",
+    "status": "Active"
+  },
+  {
+    "id": "3",
+    "name": "LA Wildfire Fund",
+    "members": 3200,
+    "role": "Admin",
+    "created": "15 April 2024",
+    "status": "Active",
+    "isCharity": true
+  }
+]
