@@ -12,7 +12,7 @@ export default function LandingScreen({ onLogin, onCreateAccount }: Props) {
   return (
     <LinearGradient
       style={{ flex: 1 }}
-      colors={['#7B68EE', '#004ba0']}
+      colors={['#1A0C27', '#1A0C77']}
       start={[0, 0]}
       end={[1, 1]}
     >
@@ -24,16 +24,16 @@ export default function LandingScreen({ onLogin, onCreateAccount }: Props) {
 
           <TouchableOpacity
             onPress={onLogin}
-            className="bg-brand-500 rounded-full py-3 mb-4"
+            style={{ backgroundColor: '#7B68EE', borderRadius: 24, paddingVertical: 12, marginBottom: 16 }}
           >
             <Text className="text-white text-center font-semibold">Log In</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={onCreateAccount}
-            className="border border-brand-500 rounded-full py-3"
+            style={{ borderWidth: 2, borderColor: '#7B68EE', borderRadius: 24, paddingVertical: 12 }}
           >
-            <Text className="text-brand-500 text-center font-semibold">
+            <Text style={{ color: '#7B68EE', textAlign: 'center', fontWeight: '600' }}>
               Create Account
             </Text>
           </TouchableOpacity>

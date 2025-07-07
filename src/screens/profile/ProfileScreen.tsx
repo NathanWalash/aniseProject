@@ -18,6 +18,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import DatePicker from 'react-native-date-picker';
+import Constants from 'expo-constants';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 interface Profile {
   firstName: string;
@@ -81,6 +84,10 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [showEmail, setShowEmail] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [avatarUri, setAvatarUri] = useState<string | null>(null); // Placeholder for real avatar
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerDate, setPickerDate] = useState(dob ? new Date(dob) : new Date(2000, 0, 1));
+  const isExpoGo = Constants.appOwnership === 'expo';
+  const isIOS = Platform.OS === 'ios';
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -258,7 +265,49 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
             <View>
               <FloatingInput label="First Name" value={firstName} onChangeText={setFirstName} autoCapitalize="words" />
               <FloatingInput label="Last Name" value={lastName} onChangeText={setLastName} autoCapitalize="words" />
-              <FloatingInput label="Date of Birth" value={dob} onChangeText={setDob} placeholder="YYYY-MM-DD" />
+              {/* Date of Birth Picker */}
+              <TouchableOpacity
+                style={{ borderBottomWidth: 1, borderBottomColor: '#d1d5db', paddingBottom: 8, marginBottom: 18 }}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={{ fontSize: 16, color: dob ? '#000' : '#999' }}>
+                  {dob ? dob : 'Date of Birth (YYYY-MM-DD)'}
+                </Text>
+              </TouchableOpacity>
+              {(isExpoGo || isIOS) ? (
+                <DateTimePickerModal
+                  isVisible={showDatePicker}
+                  mode="date"
+                  date={pickerDate}
+                  maximumDate={new Date()}
+                  onConfirm={(date) => {
+                    setShowDatePicker(false);
+                    setPickerDate(date);
+                    const yyyy = date.getFullYear();
+                    const mm = String(date.getMonth() + 1).padStart(2, '0');
+                    const dd = String(date.getDate()).padStart(2, '0');
+                    setDob(`${yyyy}-${mm}-${dd}`);
+                  }}
+                  onCancel={() => setShowDatePicker(false)}
+                />
+              ) : (
+                <DatePicker
+                  modal
+                  open={showDatePicker}
+                  date={pickerDate}
+                  mode="date"
+                  maximumDate={new Date()}
+                  onConfirm={(date) => {
+                    setShowDatePicker(false);
+                    setPickerDate(date);
+                    const yyyy = date.getFullYear();
+                    const mm = String(date.getMonth() + 1).padStart(2, '0');
+                    const dd = String(date.getDate()).padStart(2, '0');
+                    setDob(`${yyyy}-${mm}-${dd}`);
+                  }}
+                  onCancel={() => setShowDatePicker(false)}
+                />
+              )}
               <TouchableOpacity style={styles.saveBtn} onPress={saveProfile} disabled={savingProfile}>
                 {savingProfile ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>Save</Text>}
               </TouchableOpacity>

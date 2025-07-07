@@ -53,10 +53,11 @@ export default function App() {
   const [userToken, setUserToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [screen, setScreen] = useState<'login' | 'signup' | 'reset' | undefined>(undefined);
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(true); // Always true for debugging
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
 
   useEffect(() => {
+    setShowWelcome(true); // Force show welcome splash screens on every mount
     const checkToken = async () => {
       let token = await AsyncStorage.getItem('idToken');
       const refreshToken = await AsyncStorage.getItem('refreshToken');

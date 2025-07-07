@@ -8,9 +8,13 @@ import {
   ActivityIndicator,
   ScrollView,
   View,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { API_BASE_URL } from '../../utils/api';
+import Constants from 'expo-constants';
+import DatePicker from 'react-native-date-picker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 type Props = { onLogin: () => void; onSignupSuccess?: () => void };
 
@@ -24,6 +28,10 @@ export default function SignupScreen({ onLogin, onSignupSuccess }: Props) {
   const [error, setError]         = useState<string | null>(null);
   const [loading, setLoading]     = useState(false);
   const [success, setSuccess]     = useState<string | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerDate, setPickerDate] = useState(dob ? new Date(dob) : new Date(2000, 0, 1));
+  const isExpoGo = Constants.appOwnership === 'expo';
+  const isIOS = Platform.OS === 'ios';
 
   const handleSignup = async () => {
     setError(null);
@@ -66,7 +74,7 @@ export default function SignupScreen({ onLogin, onSignupSuccess }: Props) {
   return (
     <LinearGradient
       style={{ flex: 1 }}
-      colors={['#7B68EE', '#004ba0']}
+      colors={['#1A0C27', '#1A0C77']}
       start={[0, 0]}
       end={[1, 1]}
     >
@@ -90,13 +98,49 @@ export default function SignupScreen({ onLogin, onSignupSuccess }: Props) {
               value={lastName}
               onChangeText={setLastName}
             />
-            <TextInput
-              className="border-b border-gray-300 pb-2 mb-4 text-base"
-              placeholder="Date of Birth (YYYY-MM-DD)"
-              placeholderTextColor="#999"
-              value={dob}
-              onChangeText={setDob}
-            />
+            {/* Date of Birth Picker */}
+            <TouchableOpacity
+              className="border-b border-gray-300 pb-2 mb-4"
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text className="text-base" style={{ color: dob ? '#000' : '#999' }}>
+                {dob ? dob : 'Date of Birth (YYYY-MM-DD)'}
+              </Text>
+            </TouchableOpacity>
+            {(isExpoGo || isIOS) ? (
+              <DateTimePickerModal
+                isVisible={showDatePicker}
+                mode="date"
+                date={pickerDate}
+                maximumDate={new Date()}
+                onConfirm={(date) => {
+                  setShowDatePicker(false);
+                  setPickerDate(date);
+                  const yyyy = date.getFullYear();
+                  const mm = String(date.getMonth() + 1).padStart(2, '0');
+                  const dd = String(date.getDate()).padStart(2, '0');
+                  setDob(`${yyyy}-${mm}-${dd}`);
+                }}
+                onCancel={() => setShowDatePicker(false)}
+              />
+            ) : (
+              <DatePicker
+                modal
+                open={showDatePicker}
+                date={pickerDate}
+                mode="date"
+                maximumDate={new Date()}
+                onConfirm={(date) => {
+                  setShowDatePicker(false);
+                  setPickerDate(date);
+                  const yyyy = date.getFullYear();
+                  const mm = String(date.getMonth() + 1).padStart(2, '0');
+                  const dd = String(date.getDate()).padStart(2, '0');
+                  setDob(`${yyyy}-${mm}-${dd}`);
+                }}
+                onCancel={() => setShowDatePicker(false)}
+              />
+            )}
             <TextInput
               className="border-b border-gray-300 pb-2 mb-4 text-base"
               placeholder="Email"

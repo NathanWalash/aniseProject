@@ -52,7 +52,7 @@ export default function LoginScreen({
   return (
     <LinearGradient
       style={{ flex: 1 }}
-      colors={['#7B68EE', '#004ba0']}
+      colors={['#1A0C27', '#1A0C77']}
       start={[0, 0]}
       end={[1, 1]}
     >
@@ -87,7 +87,7 @@ export default function LoginScreen({
           <TouchableOpacity
             onPress={handleLogin}
             disabled={loading}
-            className="bg-brand-500 rounded-full py-3 mb-6"
+            style={{ backgroundColor: '#7B68EE', borderRadius: 24, paddingVertical: 12, marginBottom: 24 }}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
@@ -104,7 +104,7 @@ export default function LoginScreen({
             </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={onCreateAccount}>
-            <Text className="text-sm text-brand-500 text-center">
+            <Text style={{ fontSize: 14, color: '#7B68EE', textAlign: 'center' }}>
               Don't have an account? Sign Up
             </Text>
           </TouchableOpacity>

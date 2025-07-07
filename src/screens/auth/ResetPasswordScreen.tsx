@@ -48,7 +48,7 @@ export default function ResetPasswordScreen({ onBack, onResetSuccess }: Props) {
   return (
     <LinearGradient
       style={{ flex: 1 }}
-      colors={['#7B68EE', '#004ba0']}
+      colors={['#1A0C27', '#1A0C77']}
       start={[0, 0]}
       end={[1, 1]}
     >
