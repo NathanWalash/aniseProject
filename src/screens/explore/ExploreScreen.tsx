@@ -178,6 +178,22 @@ export default function ExploreScreen() {
     }
   };
 
+  // Filtering logic
+  let filteredGroups = groups;
+  if (filter === 'Most Recent') {
+    filteredGroups = [...groups].sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()); //Needs to be properly fixed, can be done when configured by 'create
+  } else if (filter === 'Most Popular') {
+    filteredGroups = [...groups].sort((a, b) => b.members - a.members);
+  } else if (filter !== 'All') {
+    // Add more filter logic for other filters if needed
+  }
+  if (search.trim()) {
+    filteredGroups = filteredGroups.filter(group =>
+      group.name.toLowerCase().includes(search.toLowerCase()) ||
+      group.mandate.toLowerCase().includes(search.toLowerCase())
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-[#F5F5F7] px-2 pt-2">
       {/* Collapsible Header */}
@@ -313,7 +329,7 @@ export default function ExploreScreen() {
         onScroll={handleScroll}
         scrollEventThrottle={16}
       >
-        {groups.map((group, idx) => (
+        {filteredGroups.map((group, idx) => (
           <View
             key={idx}
             className={`rounded-xl p-4 mb-4 shadow-sm px-3 ${group.isCharity ? '' : 'bg-white'}`}
