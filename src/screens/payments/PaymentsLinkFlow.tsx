@@ -4,6 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
+import { walletConnectService } from '../../../wallet/walletConnectInstance';
 
 // TODO: Replace with your real API utility
 const api = {
@@ -24,7 +25,7 @@ const api = {
 };
 
 export default function PaymentsLinkFlow() {
-  const navigation = useNavigation();
+  const navigation = useNavigation() as any;
   const route = useRoute();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<'start' | 'redirected' | 'confirmed' | 'success'>('start');
@@ -32,6 +33,10 @@ export default function PaymentsLinkFlow() {
   const [error, setError] = useState<string | null>(null);
   const [mandateId, setMandateId] = useState<string | null>(null);
   const [debugResult, setDebugResult] = useState<string | null>(null);
+  const [walletConnected, setWalletConnected] = useState(walletConnectService.isConnected());
+  const [walletAddress, setWalletAddress] = useState<string>('');
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
 
   // Helper to call onLinked callback if provided
   const callOnLinked = () => {
@@ -39,6 +44,48 @@ export default function PaymentsLinkFlow() {
       (route.params as any).onLinked();
     }
   };
+
+  // Helper to get wallet address from session
+  const getWalletAddress = (): string => {
+    if (walletConnectService.session && walletConnectService.session.namespaces?.eip155?.accounts?.length) {
+      const full = walletConnectService.session.namespaces.eip155.accounts[0];
+      const addr = full.split(":").pop();
+      return typeof addr === 'string' ? addr : '';
+    }
+    return '';
+  };
+
+  const handleConnectWallet = async () => {
+    setWalletLoading(true);
+    setWalletError(null);
+    try {
+      const { uri } = await walletConnectService.connect();
+      // Try to open wallet app via deep link
+      if (!uri) throw new Error('No WalletConnect URI generated');
+      await Linking.openURL(uri);
+      await walletConnectService.approve();
+      setWalletConnected(true);
+      setWalletAddress(getWalletAddress());
+    } catch (err: any) {
+      setWalletError(err.message || 'Failed to connect wallet');
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  const handleDisconnectWallet = async () => {
+    await walletConnectService.disconnect();
+    setWalletConnected(false);
+    setWalletAddress('');
+  };
+
+  // On mount, restore wallet session if present
+  React.useEffect(() => {
+    if (walletConnectService.isConnected()) {
+      setWalletConnected(true);
+      setWalletAddress(getWalletAddress());
+    }
+  }, []);
 
   const startLinkFlow = async () => {
     setLoading(true);
@@ -118,6 +165,23 @@ export default function PaymentsLinkFlow() {
   return (
     <View className="flex-1 bg-gray-100 px-4 pt-8">
       <Text className="text-2xl font-bold mb-6">Link GoCardless</Text>
+      {/* WalletConnect UI */}
+      <View style={{ marginBottom: 24 }}>
+        <Text className="text-lg font-semibold mb-2">WalletConnect</Text>
+        {walletConnected ? (
+          <View style={{ marginBottom: 8 }}>
+            <Text style={{ marginBottom: 4 }}>Connected: {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Unknown'}</Text>
+            <TouchableOpacity onPress={handleDisconnectWallet} className="bg-red-500 rounded-full py-2 px-4">
+              <Text className="text-white text-center">Disconnect Wallet</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={handleConnectWallet} className="bg-blue-500 rounded-full py-2 px-4" disabled={walletLoading}>
+            {walletLoading ? <ActivityIndicator color="white" /> : <Text className="text-white text-center">Connect Wallet</Text>}
+          </TouchableOpacity>
+        )}
+        {walletError && <Text style={{ color: 'red', marginTop: 4 }}>{walletError}</Text>}
+      </View>
       {error && <Text className="text-red-500 mb-4">{error}</Text>}
       {step === 'start' && (
         <TouchableOpacity
