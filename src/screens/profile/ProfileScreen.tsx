@@ -96,6 +96,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [walletAddress, setWalletAddress] = useState<string>('');
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
+  const [showReconnectPrompt, setShowReconnectPrompt] = useState(false);
 
   // Helper to get wallet address from session
   const getWalletAddress = (): string => {
@@ -145,6 +146,15 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
       setWalletConnected(true);
       setWalletAddress(getWalletAddress());
     }
+    // Listen for session disconnects
+    walletConnectService.onSessionDisconnect = () => {
+      setWalletConnected(false);
+      setWalletAddress('');
+      setShowReconnectPrompt(true);
+    };
+    return () => {
+      walletConnectService.onSessionDisconnect = undefined;
+    };
   }, []);
 
   useEffect(() => {
@@ -431,6 +441,12 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
         </View>
 
         {/* WalletConnect/MetaMask Card */}
+        {/* Warning for Amoy-only network */}
+        <View style={{ backgroundColor: '#fef3c7', padding: 10, borderRadius: 8, marginBottom: 12 }}>
+          <Text style={{ color: '#92400e', fontWeight: 'bold', textAlign: 'center' }}>
+            Note: When connecting your wallet, please ensure ONLY the Polygon Amoy network is enabled in MetaMask.
+          </Text>
+        </View>
         <View style={styles.card}>
           <Text style={styles.cardHeader}>MetaMask / WalletConnect</Text>
           <View style={{ marginBottom: 8 }}>
@@ -444,6 +460,17 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
                 <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#7B68EE', marginTop: 8 }]} onPress={() => navigation.navigate('DebugScreen')}>
                   <Text style={[styles.linkBtnText, { color: '#fff' }]}>Debug</Text>
                 </TouchableOpacity>
+              </>
+            ) : showReconnectPrompt ? (
+              <>
+                <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#2563eb' }]} onPress={handleConnectWallet} disabled={walletLoading}>
+                  {walletLoading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.linkBtnText, { color: '#fff' }]}>Reconnect Wallet</Text>}
+                </TouchableOpacity>
+                <View style={{ marginTop: 8, backgroundColor: '#fde68a', padding: 8, borderRadius: 6 }}>
+                  <Text style={{ color: '#92400e', textAlign: 'center' }}>
+                    Your wallet session was disconnected. Please reconnect to continue.
+                  </Text>
+                </View>
               </>
             ) : (
               <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#2563eb' }]} onPress={handleConnectWallet} disabled={walletLoading}>

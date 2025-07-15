@@ -1,5 +1,6 @@
 import { walletConnectService } from '../../wallet/walletConnectInstance';
 import { Interface, hexlify } from 'ethers';
+import { Alert } from 'react-native';
 
 // Polygon Amoy chainId
 const CHAIN_ID = 80002;
@@ -76,7 +77,14 @@ export async function incrementCounter() {
   };
   console.log('[contractService] incrementCounter tx:', tx);
   console.log('[contractService] incrementCounter session:', walletConnectService.session);
-  await walletConnectService.sendTransaction(tx);
+  try {
+    await walletConnectService.sendTransaction(tx);
+  } catch (err: any) {
+    if (err?.message?.includes('Internal JSON-RPC error') || err?.code === 5000) {
+      Alert.alert('Transaction Error', 'An error occurred while sending the transaction. Please try again.');
+    }
+    throw err;
+  }
 }
 
 export async function decrementCounter() {
@@ -92,5 +100,12 @@ export async function decrementCounter() {
   };
   console.log('[contractService] decrementCounter tx:', tx);
   console.log('[contractService] decrementCounter session:', walletConnectService.session);
-  await walletConnectService.sendTransaction(tx);
+  try {
+    await walletConnectService.sendTransaction(tx);
+  } catch (err: any) {
+    if (err?.message?.includes('Internal JSON-RPC error') || err?.code === 5000) {
+      Alert.alert('Transaction Error', 'An error occurred while sending the transaction. Please try again.');
+    }
+    throw err;
+  }
 } 

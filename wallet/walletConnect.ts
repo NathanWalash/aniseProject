@@ -7,6 +7,7 @@ export class WalletConnectService {
   client: SignClient | null = null;
   session: any = null;
   approval: (() => Promise<any>) | null = null;
+  onSessionDisconnect?: () => void;
 
   async init() {
     if (this.client) return;
@@ -21,31 +22,77 @@ export class WalletConnectService {
       metadata,
     });
     console.log('[WalletConnect] Initialized with metadata:', metadata);
-    // Restore session from the client (WalletConnect v2 handles persistence internally)
+
+    // Log all sessions for debugging
     const sessions = this.client.session.getAll();
+    console.log('[WalletConnect] All sessions:', sessions.map(s => ({
+      chains: s.namespaces?.eip155?.chains,
+      url: s.self?.metadata?.url,
+      acknowledged: s.acknowledged,
+      expiry: s.expiry,
+      topic: s.topic,
+    })));
+
+    // Find a valid session for Amoy and this dapp
     const amoySession = sessions.find(
-      (s) => s.namespaces?.eip155?.chains?.length === 1 && s.namespaces.eip155.chains[0] === `eip155:${CHAIN_ID}`
+      (s) =>
+        s.namespaces?.eip155?.chains?.includes(`eip155:${CHAIN_ID}`) &&
+        s.self?.metadata?.url === 'https://anise.org' &&
+        s.acknowledged &&
+        (!s.expiry || s.expiry * 1000 > Date.now())
     );
     if (amoySession) {
       this.session = amoySession;
-      console.log('[WalletConnect] Restored Amoy-only session:', this.session.namespaces.eip155.chains);
+      console.log('[WalletConnect] Restored session with chains:', this.session.namespaces.eip155.chains, 'and url:', this.session.self?.metadata?.url);
+      // Validate session by making a simple request
+      try {
+        await this.client.request({
+          topic: this.session.topic,
+          chainId: `eip155:${CHAIN_ID}`,
+          request: {
+            method: 'eth_chainId',
+            params: [],
+          },
+        });
+        // If this succeeds, session is valid
+      } catch (err) {
+        // If it fails, disconnect and clear session
+        console.log('[WalletConnect] Session validation failed, disconnecting:', err);
+        await this.client.disconnect({
+          topic: this.session.topic,
+          reason: { code: 6000, message: "Session invalid on wallet" }
+        });
+        this.session = null;
+        if (this.onSessionDisconnect) this.onSessionDisconnect();
+      }
     } else {
+      // Disconnect all stale/invalid sessions for this dapp
+      for (const s of sessions) {
+        if (s.self?.metadata?.url === 'https://anise.org') {
+          await this.client.disconnect({
+            topic: s.topic,
+            reason: { code: 6000, message: "Stale or invalid session" }
+          });
+        }
+      }
       this.session = null;
-      console.log('[WalletConnect] No Amoy-only session restored.');
+      console.log('[WalletConnect] No valid Amoy session for this dapp restored.');
     }
     // Add event listeners for disconnect/session expiry
     this.client.on("session_delete", () => {
       this.disconnect();
+      if (this.onSessionDisconnect) this.onSessionDisconnect();
     });
     this.client.on("session_expire", () => {
       this.disconnect();
+      if (this.onSessionDisconnect) this.onSessionDisconnect();
     });
   }
 
   async connect() {
     if (!this.client) throw new Error("Client not initialized");
     const { uri, approval } = await this.client.connect({
-      requiredNamespaces: {
+      optionalNamespaces: {
         eip155: {
           methods: [
             "eth_sendTransaction",
@@ -57,7 +104,7 @@ export class WalletConnectService {
       },
     });
     this.approval = approval;
-    console.log('[WalletConnect] connect() called. Required chains:', ["eip155:" + CHAIN_ID]);
+    console.log('[WalletConnect] connect() called. Optional chains:', ["eip155:" + CHAIN_ID]);
     return { uri };
   }
 
@@ -65,6 +112,23 @@ export class WalletConnectService {
     if (!this.approval) throw new Error("Approval not available");
     this.session = await this.approval();
     this.approval = null; // Clear approval after use
+    // Enforce Amoy-only session
+    const chains = this.session.namespaces?.eip155?.chains || [];
+    if (chains.length !== 1 || chains[0] !== `eip155:${CHAIN_ID}`) {
+      // Disconnect and prompt user
+      await this.client.disconnect({
+        topic: this.session.topic,
+        reason: { code: 6000, message: "Session must be Amoy-only" }
+      });
+      this.session = null;
+      if (typeof window !== 'undefined' && window.alert) {
+        alert("Please enable only Polygon Amoy in MetaMask before connecting.");
+      } else {
+        console.log("Please enable only Polygon Amoy in MetaMask before connecting.");
+      }
+      if (this.onSessionDisconnect) this.onSessionDisconnect();
+      return null;
+    }
     // No need to manually save session; WalletConnect handles it
     return this.session;
   }
