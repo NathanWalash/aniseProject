@@ -1,7 +1,6 @@
 import SignClient from "@walletconnect/sign-client";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const SESSION_KEY = "WALLETCONNECT_SESSION";
+const SESSION_KEY = "WALLETCONNECT_SESSION"; // No longer used, but kept for reference
 
 export class WalletConnectService {
   client: SignClient | null = null;
@@ -19,15 +18,12 @@ export class WalletConnectService {
         icons: ["https://your-app.com/icon.png"],
       },
     });
-    // Restore session if present
-    const savedSession = await AsyncStorage.getItem(SESSION_KEY);
-    if (savedSession) {
-      try {
-        this.session = JSON.parse(savedSession);
-      } catch (e) {
-        this.session = null;
-        await AsyncStorage.removeItem(SESSION_KEY);
-      }
+    // Restore session from the client (WalletConnect v2 handles persistence internally)
+    const sessions = this.client.session.getAll();
+    if (sessions.length > 0) {
+      this.session = sessions[0]; // Use the first session, or handle multiple as needed
+    } else {
+      this.session = null;
     }
     // Add event listeners for disconnect/session expiry
     this.client.on("session_delete", () => {
@@ -60,8 +56,7 @@ export class WalletConnectService {
     if (!this.approval) throw new Error("Approval not available");
     this.session = await this.approval();
     this.approval = null; // Clear approval after use
-    // Save session to AsyncStorage
-    await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(this.session));
+    // No need to manually save session; WalletConnect handles it
     return this.session;
   }
 
@@ -70,8 +65,17 @@ export class WalletConnectService {
   }
 
   async disconnect() {
+    if (this.session && this.client) {
+      // Properly disconnect the session from the client
+      await this.client.disconnect({
+        topic: this.session.topic,
+        reason: {
+          code: 6000,
+          message: "User disconnected",
+        },
+      });
+    }
     this.session = null;
-    await AsyncStorage.removeItem(SESSION_KEY);
   }
 
   // Send a transaction using WalletConnect (MetaMask will prompt to sign)
