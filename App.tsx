@@ -13,6 +13,7 @@ import { jwtDecode } from 'jwt-decode';
 import { API_BASE_URL } from './src/utils/api';
 import { FIREBASE_API_KEY } from './src/utils/firebase';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { walletConnectService } from './wallet/walletConnectInstance';
 
 // One-time helpful log for API_BASE_URL
 console.log('[INFO] API_BASE_URL is set to:', API_BASE_URL);

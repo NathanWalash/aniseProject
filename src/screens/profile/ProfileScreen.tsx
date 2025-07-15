@@ -13,6 +13,7 @@ import {
   Alert,
   LayoutAnimation,
   Platform,
+  Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
@@ -21,6 +22,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import DatePicker from 'react-native-date-picker';
 import Constants from 'expo-constants';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { walletConnectService } from '../../../wallet/walletConnectInstance';
 
 interface Profile {
   firstName: string;
@@ -88,6 +90,62 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [pickerDate, setPickerDate] = useState(dob ? new Date(dob) : new Date(2000, 0, 1));
   const isExpoGo = Constants.appOwnership === 'expo';
   const isIOS = Platform.OS === 'ios';
+
+  // WalletConnect state
+  const [walletConnected, setWalletConnected] = useState(walletConnectService.isConnected());
+  const [walletAddress, setWalletAddress] = useState<string>('');
+  const [walletLoading, setWalletLoading] = useState(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
+
+  // Helper to get wallet address from session
+  const getWalletAddress = (): string => {
+    if (walletConnectService.session && walletConnectService.session.namespaces?.eip155?.accounts?.length) {
+      const full = walletConnectService.session.namespaces.eip155.accounts[0];
+      const addr = full.split(":").pop();
+      return typeof addr === 'string' ? addr : '';
+    }
+    return '';
+  };
+
+  // Defensive WalletConnect initialization
+  const ensureWalletInit = async () => {
+    if (!walletConnectService.client) {
+      await walletConnectService.init();
+    }
+  };
+
+  const handleConnectWallet = async () => {
+    setWalletLoading(true);
+    setWalletError(null);
+    try {
+      await ensureWalletInit();
+      const { uri } = await walletConnectService.connect();
+      if (!uri) throw new Error('No WalletConnect URI generated');
+      await Linking.openURL(uri);
+      await walletConnectService.approve();
+      setWalletConnected(true);
+      setWalletAddress(getWalletAddress());
+    } catch (err: any) {
+      setWalletError(err.message || 'Failed to connect wallet');
+    } finally {
+      setWalletLoading(false);
+    }
+  };
+
+  const handleDisconnectWallet = async () => {
+    await ensureWalletInit();
+    await walletConnectService.disconnect();
+    setWalletConnected(false);
+    setWalletAddress('');
+  };
+
+  // On mount, restore wallet session if present
+  useEffect(() => {
+    if (walletConnectService.isConnected()) {
+      setWalletConnected(true);
+      setWalletAddress(getWalletAddress());
+    }
+  }, []);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -214,6 +272,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const handleLogout = async () => {
     await AsyncStorage.removeItem('idToken');
     await AsyncStorage.removeItem('refreshToken');
+    // Do NOT disconnect wallet or remove WALLETCONNECT_SESSION here
     if (onLogout) onLogout();
   };
 
@@ -369,6 +428,26 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
               </TouchableOpacity>
             </View>
           )}
+        </View>
+
+        {/* WalletConnect/MetaMask Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardHeader}>MetaMask / WalletConnect</Text>
+          <View style={{ marginBottom: 8 }}>
+            {walletConnected ? (
+              <>
+                <Text style={{ marginBottom: 4 }}>Connected: {walletAddress.length > 0 ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Unknown'}</Text>
+                <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#ef4444' }]} onPress={handleDisconnectWallet}>
+                  <Text style={[styles.linkBtnText, { color: '#fff' }]}>Disconnect Wallet</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#2563eb' }]} onPress={handleConnectWallet} disabled={walletLoading}>
+                {walletLoading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.linkBtnText, { color: '#fff' }]}>Connect to MetaMask</Text>}
+              </TouchableOpacity>
+            )}
+            {walletError && <Text style={{ color: 'red', marginTop: 4 }}>{walletError}</Text>}
+          </View>
         </View>
 
         {/* Status Message */}
