@@ -75,7 +75,8 @@ export default function App() {
     await AsyncStorage.removeItem('idToken');
     await AsyncStorage.removeItem('refreshToken');
     setUserToken(null);
-    setScreen('login');
+    setShowWelcome(false); // Skip welcome splash after logout
+    setScreen('login');    // Go directly to login screen
   };
 
   const handleLoginSuccess = async () => {
