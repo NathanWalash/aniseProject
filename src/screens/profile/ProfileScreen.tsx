@@ -272,6 +272,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const handleLogout = async () => {
     await AsyncStorage.removeItem('idToken');
     await AsyncStorage.removeItem('refreshToken');
+    // Do NOT disconnect wallet or remove WALLETCONNECT_SESSION here
     if (onLogout) onLogout();
   };
 
