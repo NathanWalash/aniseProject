@@ -1,5 +1,6 @@
 import SignClient from "@walletconnect/sign-client";
 
+const CHAIN_ID = 80002; // Polygon Amoy
 const SESSION_KEY = "WALLETCONNECT_SESSION"; // No longer used, but kept for reference
 
 export class WalletConnectService {
@@ -9,21 +10,28 @@ export class WalletConnectService {
 
   async init() {
     if (this.client) return;
+    const metadata = {
+      name: "AniseWalletConnect",
+      description: "Connect your wallet to Anise services.",
+      url: "https://anise.org",
+      icons: ["https://your-app.com/icon.png"],
+    };
     this.client = await SignClient.init({
       projectId: "1f3ba1d16816b5ed5cfcafa99bde5aa8",
-      metadata: {
-        name: "AniseWalletConnect",
-        description: "Connect your wallet to Anise services.",
-        url: "https://anise.org",
-        icons: ["https://your-app.com/icon.png"],
-      },
+      metadata,
     });
+    console.log('[WalletConnect] Initialized with metadata:', metadata);
     // Restore session from the client (WalletConnect v2 handles persistence internally)
     const sessions = this.client.session.getAll();
-    if (sessions.length > 0) {
-      this.session = sessions[0]; // Use the first session, or handle multiple as needed
+    const amoySession = sessions.find(
+      (s) => s.namespaces?.eip155?.chains?.length === 1 && s.namespaces.eip155.chains[0] === `eip155:${CHAIN_ID}`
+    );
+    if (amoySession) {
+      this.session = amoySession;
+      console.log('[WalletConnect] Restored Amoy-only session:', this.session.namespaces.eip155.chains);
     } else {
       this.session = null;
+      console.log('[WalletConnect] No Amoy-only session restored.');
     }
     // Add event listeners for disconnect/session expiry
     this.client.on("session_delete", () => {
@@ -43,12 +51,13 @@ export class WalletConnectService {
             "eth_sendTransaction",
             "personal_sign"
           ],
-          chains: ["eip155:80002"],
+          chains: ["eip155:" + CHAIN_ID], // Polygon Amoy only
           events: ["chainChanged", "accountsChanged"],
         },
       },
     });
     this.approval = approval;
+    console.log('[WalletConnect] connect() called. Required chains:', ["eip155:" + CHAIN_ID]);
     return { uri };
   }
 
@@ -82,12 +91,13 @@ export class WalletConnectService {
   async sendTransaction(tx: any) {
     if (!this.client || !this.session) throw new Error("Not connected");
     const topic = this.session.topic;
-    const chainId = "eip155:11155111";
+    const chainId = `eip155:${CHAIN_ID}`;
     const from = this.session.namespaces.eip155.accounts[0].split(":").pop();
     const txRequest = {
       ...tx,
       from,
     };
+    console.log('[WalletConnect] sendTransaction chainId:', chainId, 'txRequest:', txRequest);
     return await this.client.request({
       topic,
       chainId,

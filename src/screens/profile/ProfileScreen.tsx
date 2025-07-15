@@ -440,6 +440,10 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
                 <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#ef4444' }]} onPress={handleDisconnectWallet}>
                   <Text style={[styles.linkBtnText, { color: '#fff' }]}>Disconnect Wallet</Text>
                 </TouchableOpacity>
+                {/* Debug Button: Only show if wallet is connected */}
+                <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#7B68EE', marginTop: 8 }]} onPress={() => navigation.navigate('DebugScreen')}>
+                  <Text style={[styles.linkBtnText, { color: '#fff' }]}>Debug</Text>
+                </TouchableOpacity>
               </>
             ) : (
               <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#2563eb' }]} onPress={handleConnectWallet} disabled={walletLoading}>
