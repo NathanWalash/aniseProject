@@ -12,9 +12,9 @@ export class WalletConnectService {
     this.client = await SignClient.init({
       projectId: "1f3ba1d16816b5ed5cfcafa99bde5aa8",
       metadata: {
-        name: "WalletConnectDevelopment",
-        description: "MVP with polling and tx signing",
-        url: "https://your-app.com",
+        name: "AniseWalletConnect",
+        description: "Connect your wallet to Anise services.",
+        url: "https://anise.org",
         icons: ["https://your-app.com/icon.png"],
       },
     });
@@ -43,7 +43,7 @@ export class WalletConnectService {
             "eth_sendTransaction",
             "personal_sign"
           ],
-          chains: ["eip155:11155111"],
+          chains: ["eip155:80002"],
           events: ["chainChanged", "accountsChanged"],
         },
       },
