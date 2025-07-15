@@ -1,6 +1,6 @@
 import { walletConnectService } from '../../wallet/walletConnectInstance';
 import { Interface, hexlify } from 'ethers';
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 
 // Polygon Amoy chainId
 const CHAIN_ID = 80002;
@@ -78,6 +78,11 @@ export async function incrementCounter() {
   console.log('[contractService] incrementCounter tx:', tx);
   console.log('[contractService] incrementCounter session:', walletConnectService.session);
   try {
+    try {
+      await Linking.openURL('metamask://');
+    } catch (e) {
+      console.log('Could not open MetaMask:', e);
+    }
     await walletConnectService.sendTransaction(tx);
   } catch (err: any) {
     if (err?.message?.includes('Internal JSON-RPC error') || err?.code === 5000) {
@@ -101,6 +106,11 @@ export async function decrementCounter() {
   console.log('[contractService] decrementCounter tx:', tx);
   console.log('[contractService] decrementCounter session:', walletConnectService.session);
   try {
+    try {
+      await Linking.openURL('metamask://');
+    } catch (e) {
+      console.log('Could not open MetaMask:', e);
+    }
     await walletConnectService.sendTransaction(tx);
   } catch (err: any) {
     if (err?.message?.includes('Internal JSON-RPC error') || err?.code === 5000) {
