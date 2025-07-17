@@ -5,7 +5,7 @@
     "modules": ["MemberModule", "ClaimVotingModule"],
     "initParamsSchema": [
       { "admin": "address" },
-      { "quorum": "uint256" }
+      { "approvalThreshold": "uint256" }
     ],
     "templateId": "claims-voting-v1"
   },

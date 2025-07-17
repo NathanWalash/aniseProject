@@ -2,11 +2,11 @@
   "moduleName": "ClaimVotingModule",
   "initParamsSchema": [
     {
-      "name": "quorum",
+      "name": "approvalThreshold",
       "type": "uint256",
-      "label": "Quorum (%)",
+      "label": "Approval Threshold (%)",
       "widget": "slider",
-      "min": 0,
+      "min": 1,
       "max": 100,
       "default": 50
     }
