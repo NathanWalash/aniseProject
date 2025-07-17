@@ -18,16 +18,47 @@
 
 import { ethers } from "ethers";
 import { getContractAddress } from "../utils/contractAddresses";
+import DaoFactoryAbiJson from "./abis/DaoFactory.json";
+import DaoKernelAbiJson from "./abis/DaoKernel.json";
+const DaoFactoryAbi = DaoFactoryAbiJson.abi || DaoFactoryAbiJson;
+const DaoKernelAbi = DaoKernelAbiJson.abi || DaoKernelAbiJson;
 
-// 1. DAOs
-// =======
-// Get all DAOs
+/**
+ * GET /daos
+ * List all DAOs
+ * @param provider ethers.Provider
+ * @param network string (default: "amoy")
+ * @returns Array of DAO info objects
+ */
 export async function getAllDaos(provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use DaoFactoryAbi, DaoFactory address
+  const address = getContractAddress("DaoFactory", network);
+  const contract = new ethers.Contract(address, DaoFactoryAbi, provider);
+  const count = await contract.getDaoCount();
+  const daos = [];
+  for (let i = 0; i < count; i++) {
+    const info = await contract.getDaoInfo(i);
+    daos.push(info);
+  }
+  return daos;
 }
-// Get DAO metadata (name, symbol, modules, etc.)
+
+/**
+ * GET /daos/:daoAddress
+ * Get metadata/config for a specific DAO
+ * @param daoAddress string
+ * @param provider ethers.Provider
+ * @param network string (default: "amoy")
+ * @returns DAO metadata object
+ */
 export async function getDaoMetadata(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use KernelLogicAbi, daoAddress
+  const contract = new ethers.Contract(daoAddress, DaoKernelAbi, provider);
+  const [name, symbol, owner, modules] = await Promise.all([
+    contract.name(),
+    contract.symbol(),
+    contract.owner(),
+    contract.modules()
+  ]);
+  return { name, symbol, owner, modules };
 }
 // Get DAO modules (list of module addresses/types)
 export async function getDaoModules(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
