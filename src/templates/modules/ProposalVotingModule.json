@@ -1,0 +1,14 @@
+{
+  "moduleName": "ProposalVotingModule",
+  "initParamsSchema": [
+    {
+      "name": "approvalThreshold",
+      "type": "uint256",
+      "label": "Approval Threshold (%)",
+      "widget": "slider",
+      "min": 1,
+      "max": 100,
+      "default": 51
+    }
+  ]
+} 

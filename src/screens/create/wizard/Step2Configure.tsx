@@ -8,6 +8,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 export const baseParams = [
   { name: 'daoName', label: 'Anise Name', widget: 'text', help: 'The name for your group. This will be visible to members.' },
   { name: 'daoBrief', label: 'Brief Description', widget: 'text', help: 'A short summary of your group\'s purpose.' },
+  { name: 'intendedAudience', label: 'Intended Audience', widget: 'text', help: 'Who is this group for? (e.g. community, donors, etc.)' },
   { name: 'daoMandate', label: 'Mandate', widget: 'textarea', help: 'Describe the mission or rules for your group.' },
   { name: 'isPublic', label: 'Visibility', widget: 'switch', help: 'Public groups are visible in Explore. Private groups are only accessible by invite or code.' },
 ];
@@ -32,12 +33,16 @@ function getModuleCategory(moduleName: string) {
 
 export default function Step2Configure({ template, config, setConfig, onNext, onBack }: Props) {
   const [touched, setTouched] = React.useState<Record<string, boolean>>({});
+  // In paramSchemasByModule, filter out admin, token, and owner fields from params
   const paramSchemasByModule = template.modules.map((moduleName) => {
     const mod = modules[moduleName];
+    let params = mod ? mod.initParamsSchema : [];
+    // Remove admin, token, and owner from user input
+    params = params.filter((p: any) => !['admin', 'token', 'owner'].includes(p.name));
     return {
       moduleName,
       category: getModuleCategory(moduleName),
-      params: mod ? mod.initParamsSchema : [],
+      params,
       description: mod && mod.description ? mod.description : '',
     };
   });

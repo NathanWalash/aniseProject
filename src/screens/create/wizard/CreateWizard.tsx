@@ -9,11 +9,13 @@ import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
 import { baseParams } from './Step2Configure';
 
 export type Template = {
-  templateName: string;
-  templateDescription: string;
-  modules: string[];
-  initParamsSchema: { [key: string]: string }[];
   templateId: string;
+  name?: string;
+  description?: string;
+  templateName?: string;
+  templateDescription?: string;
+  modules: any[];
+  initParamsSchema?: { [key: string]: string }[];
 };
 
 export type CreateWizardState = {
