@@ -1,3 +1,4 @@
+// contractApi.ts: Provides frontend API functions for interacting with smart contracts (DAOs, modules, tokens, etc.)
 /*
  * Contract API Checklist for Anise Frontend
  *
@@ -20,15 +21,23 @@ import { ethers } from "ethers";
 import { getContractAddress } from "../utils/contractAddresses";
 import DaoFactoryAbiJson from "./abis/DaoFactory.json";
 import DaoKernelAbiJson from "./abis/DaoKernel.json";
+import MemberModuleAbiJson from "./abis/MemberModule.json";
+import ProposalVotingModuleAbiJson from "./abis/ProposalVotingModule.json";
+import ClaimVotingModuleAbiJson from "./abis/ClaimVotingModule.json";
+import TreasuryModuleAbiJson from "./abis/TreasuryModule.json";
+import ModuleRegistryAbiJson from "./abis/ModuleRegistry.json";
+import TokenAbiJson from "./abis/Token.json";
 const DaoFactoryAbi = DaoFactoryAbiJson.abi || DaoFactoryAbiJson;
 const DaoKernelAbi = DaoKernelAbiJson.abi || DaoKernelAbiJson;
+const MemberModuleAbi = MemberModuleAbiJson.abi || MemberModuleAbiJson;
+const ProposalVotingModuleAbi = ProposalVotingModuleAbiJson.abi || ProposalVotingModuleAbiJson;
+const ClaimVotingModuleAbi = ClaimVotingModuleAbiJson.abi || ClaimVotingModuleAbiJson;
+const TreasuryModuleAbi = TreasuryModuleAbiJson.abi || TreasuryModuleAbiJson;
+const ModuleRegistryAbi = ModuleRegistryAbiJson.abi || ModuleRegistryAbiJson;
+const TokenAbi = TokenAbiJson.abi || TokenAbiJson;
 
 /**
- * GET /daos
- * List all DAOs
- * @param provider ethers.Provider
- * @param network string (default: "amoy")
- * @returns Array of DAO info objects
+ * List all DAOs (paginated if needed)
  */
 export async function getAllDaos(provider: ethers.Provider, network: "amoy" = "amoy") {
   const address = getContractAddress("DaoFactory", network);
@@ -43,124 +52,219 @@ export async function getAllDaos(provider: ethers.Provider, network: "amoy" = "a
 }
 
 /**
- * GET /daos/:daoAddress
  * Get metadata/config for a specific DAO
- * @param daoAddress string
- * @param provider ethers.Provider
- * @param network string (default: "amoy")
- * @returns DAO metadata object
  */
 export async function getDaoMetadata(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
+  const factoryAddress = getContractAddress("DaoFactory", network);
+  const factoryContract = new ethers.Contract(factoryAddress, DaoFactoryAbi, provider);
+  try {
+    const info = await factoryContract.getDaoInfoByAddress(daoAddress);
+    return info;
+  } catch (err) {
+    let msg = "";
+    if (err && typeof err === "object" && "message" in err) {
+      msg = (err as any).message;
+    } else {
+      msg = String(err);
+    }
+    throw new Error("DAO not found or error: " + msg);
+  }
+}
+
+/**
+ * Get module addresses/types for a DAO (from kernel)
+ */
+export async function getDaoModules(daoAddress: string, provider: ethers.Provider) {
   const contract = new ethers.Contract(daoAddress, DaoKernelAbi, provider);
-  const [name, symbol, owner, modules] = await Promise.all([
-    contract.name(),
-    contract.symbol(),
-    contract.owner(),
-    contract.modules()
-  ]);
-  return { name, symbol, owner, modules };
+  return await contract.modules();
 }
-// Get DAO modules (list of module addresses/types)
-export async function getDaoModules(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use KernelLogicAbi, daoAddress
-}
-// Get all public DAOs (paginated)
+
+/**
+ * List public DAOs (paginated)
+ */
 export async function getPublicDaos(offset: number, limit: number, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use DaoFactoryAbi, DaoFactory address
+  const address = getContractAddress("DaoFactory", network);
+  const contract = new ethers.Contract(address, DaoFactoryAbi, provider);
+  const [daos, total] = await contract.getPublicDaosPaginated(offset, limit);
+  return { daos, total };
 }
-// Get DAOs by template (paginated)
+
+/**
+ * List DAOs by template (paginated)
+ */
 export async function getDaosByTemplate(templateId: string, offset: number, limit: number, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use DaoFactoryAbi, DaoFactory address
+  const address = getContractAddress("DaoFactory", network);
+  const contract = new ethers.Contract(address, DaoFactoryAbi, provider);
+  const [daos, total] = await contract.getDaosByTemplatePaginated(templateId, offset, limit);
+  return { daos, total };
 }
-// Get DAOs by creator (paginated)
+
+/**
+ * List DAOs by creator (paginated)
+ */
 export async function getDaosByCreator(creatorAddress: string, offset: number, limit: number, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use DaoFactoryAbi, DaoFactory address
+  const address = getContractAddress("DaoFactory", network);
+  const contract = new ethers.Contract(address, DaoFactoryAbi, provider);
+  const [daos, total] = await contract.getDaosByCreatorPaginated(creatorAddress, offset, limit);
+  return { daos, total };
 }
 
-// 2. Members
-// ==========
-// Get all members of a DAO
-export async function getMembers(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use MemberLogicAbi, daoAddress
-}
-// Get member status (isMember, role, etc.)
-export async function getMemberStatus(daoAddress: string, memberAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use MemberLogicAbi, daoAddress
-}
-// Get join requests
-export async function getJoinRequests(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use MemberLogicAbi, daoAddress
-}
-// Get join request status for a user
-export async function getJoinRequestStatus(daoAddress: string, userAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use MemberLogicAbi, daoAddress
-}
-// Get member count for a DAO
-export async function getMemberCount(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use MemberLogicAbi, daoAddress
+/**
+ * List all members of a DAO (paginated)
+ * @param memberModuleAddress The address of the MemberModule for the DAO
+ */
+export async function getMembers(memberModuleAddress: string, offset: number, limit: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(memberModuleAddress, MemberModuleAbi, provider);
+  const [members, total] = await contract.getMembersPaginated(offset, limit);
+  return { members, total };
 }
 
-// 3. Proposals
-// ============
-// Get all proposals for a DAO
-export async function getProposals(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use ProposalLogicAbi, daoAddress
-}
-// Get proposal details
-export async function getProposalDetails(daoAddress: string, proposalId: string | number, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use ProposalLogicAbi, daoAddress
-}
-// Get proposal count for a DAO
-export async function getProposalCount(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use ProposalLogicAbi, daoAddress
+/**
+ * Get total number of members in a DAO
+ */
+export async function getMemberCount(memberModuleAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(memberModuleAddress, MemberModuleAbi, provider);
+  return await contract.getMemberCount();
 }
 
-// 4. Claims
-// =========
-// Get all claims for a DAO
-export async function getClaims(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use ClaimLogicAbi, daoAddress
-}
-// Get claim details
-export async function getClaimDetails(daoAddress: string, claimId: string | number, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use ClaimLogicAbi, daoAddress
-}
-// Get claim count for a DAO
-export async function getClaimCount(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use ClaimLogicAbi, daoAddress
+/**
+ * Get the role of a member in a DAO
+ */
+export async function getMemberRole(memberModuleAddress: string, userAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(memberModuleAddress, MemberModuleAbi, provider);
+  return await contract.getRole(userAddress);
 }
 
-// 5. Treasury
-// ===========
-// Get treasury balance for a DAO
-export async function getTreasuryBalance(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use TreasuryLogicAbi, daoAddress
-}
-// Get token balance for a member
-export async function getMemberTokenBalance(daoAddress: string, memberAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use TokenAbi, Token address
+/**
+ * List join requests (paginated)
+ */
+export async function getJoinRequests(memberModuleAddress: string, offset: number, limit: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(memberModuleAddress, MemberModuleAbi, provider);
+  const [requests, total] = await contract.getJoinRequestsPaginated(offset, limit);
+  return { requests, total };
 }
 
-// 6. Module Registry
-// ==================
-// Get all registered modules
-export async function getAllRegisteredModules(provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use ModuleRegistryAbi, ModuleRegistry address
-}
-// Get module address by name
-export async function getModuleAddressByName(moduleName: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use ModuleRegistryAbi, ModuleRegistry address
+/**
+ * Get total number of join requests
+ */
+export async function getJoinRequestCount(memberModuleAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(memberModuleAddress, MemberModuleAbi, provider);
+  return await contract.getJoinRequestCount();
 }
 
-// 7. Utility/Meta
-// ===============
-// Get DAO token address
-export async function getDaoTokenAddress(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use KernelLogicAbi, daoAddress
-}
-// Get DAO owner
-export async function getDaoOwner(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  // TODO: Use KernelLogicAbi, daoAddress
+/**
+ * Check if a user has a pending join request
+ */
+export async function getJoinRequestStatus(memberModuleAddress: string, userAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(memberModuleAddress, MemberModuleAbi, provider);
+  return await contract.joinRequests(userAddress);
 }
 
-// Add more as needed for your use cases! 
+/**
+ * List all proposals (paginated)
+ * @param proposalModuleAddress The address of the ProposalVotingModule for the DAO
+ */
+export async function getProposals(proposalModuleAddress: string, offset: number, limit: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(proposalModuleAddress, ProposalVotingModuleAbi, provider);
+  const [proposals, total] = await contract.getProposalsPaginated(offset, limit);
+  return { proposals, total };
+}
+
+/**
+ * Get total number of proposals
+ */
+export async function getProposalCount(proposalModuleAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(proposalModuleAddress, ProposalVotingModuleAbi, provider);
+  return await contract.getProposalCount();
+}
+
+/**
+ * Get details for a specific proposal
+ */
+export async function getProposalDetails(proposalModuleAddress: string, proposalId: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(proposalModuleAddress, ProposalVotingModuleAbi, provider);
+  return await contract.getProposal(proposalId);
+}
+
+/**
+ * List all claims (paginated)
+ * @param claimModuleAddress The address of the ClaimVotingModule for the DAO
+ */
+export async function getClaims(claimModuleAddress: string, offset: number, limit: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(claimModuleAddress, ClaimVotingModuleAbi, provider);
+  const [claims, total] = await contract.getClaimsPaginated(offset, limit);
+  return { claims, total };
+}
+
+/**
+ * Get total number of claims
+ */
+export async function getClaimCount(claimModuleAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(claimModuleAddress, ClaimVotingModuleAbi, provider);
+  return await contract.getClaimCount();
+}
+
+/**
+ * Get details for a specific claim
+ */
+export async function getClaimDetails(claimModuleAddress: string, claimId: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(claimModuleAddress, ClaimVotingModuleAbi, provider);
+  return await contract.getClaim(claimId);
+}
+
+/**
+ * Get DAO treasury token balance
+ */
+export async function getTreasuryBalance(treasuryModuleAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(treasuryModuleAddress, TreasuryModuleAbi, provider);
+  return await contract.getTokenBalance();
+}
+
+/**
+ * Get a member's token balance (from ERC20 token contract)
+ */
+export async function getMemberTokenBalance(tokenAddress: string, memberAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(tokenAddress, TokenAbi, provider);
+  return await contract.balanceOf(memberAddress);
+}
+
+/**
+ * List all registered modules (ModuleRegistry)
+ */
+export async function getAllRegisteredModules(moduleRegistryAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(moduleRegistryAddress, ModuleRegistryAbi, provider);
+  // Assuming a function getAllModules() exists; if not, adjust as needed
+  return await contract.getAllModules();
+}
+
+/**
+ * Get module address by name (ModuleRegistry)
+ */
+export async function getModuleAddressByName(moduleRegistryAddress: string, moduleName: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(moduleRegistryAddress, ModuleRegistryAbi, provider);
+  return await contract.getModuleAddressByName(moduleName);
+}
+
+/**
+ * Get the token address for a DAO (from kernel/treasury)
+ */
+export async function getDaoTokenAddress(treasuryModuleAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(treasuryModuleAddress, TreasuryModuleAbi, provider);
+  return await contract.token();
+}
+
+/**
+ * Get the owner address for a DAO (from kernel)
+ */
+export async function getDaoOwner(daoAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(daoAddress, DaoKernelAbi, provider);
+  return await contract.owner();
+}
+
+/**
+ * Get the treasury module address for a DAO (from kernel)
+ */
+export async function getTreasuryModuleAddress(daoAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(daoAddress, DaoKernelAbi, provider);
+  return await contract.getTreasuryModule();
+} 

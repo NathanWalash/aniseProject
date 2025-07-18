@@ -1,17 +1,20 @@
 export const CONTRACT_ADDRESSES = {
   amoy: {
-    ModuleRegistry: "0x0A5f5F6e5C85e946e4b4A8C55913437BF90E9b23",
-    Token: "0x227718474C2B8afB4bBdeB7EaeA8e54660CB42F8",
-    MemberLogic: "0x85F1de536506dc3167187369281800c84B274453",
-    ProposalLogic: "0xD8f2687D8c111BEc2AB6Da7342F256C7C27C1AaC",
-    ClaimLogic: "0x846Ec69F1325C4ACc903fB3290625057e37e4B78",
-    TreasuryLogic: "0xb3263A8F38c8D8E55Af0ae13e3C4734f49d01ABa",
-    KernelLogic: "0x1b35f825Dfe867aE7d9Ec48515270eCF143FE378",
-    DaoFactory: "0x746eb3F2B580234dc3660Ee2a2228f83e2100d60"
-  }
+    ModuleRegistry: "0x63f106ACc32fcbADFFa0A866bDe314FBe264a827",
+    Token:          "0x9702C131D66B37aBEcdA07c4b5eCE68562D18721",
+    MemberLogic:    "0x93b4384cAD90Ef3cCE48DD20c832390024418B18",
+    ProposalLogic:  "0xfFA03033fa93A15Dd026e9bf1fA12AE0fD679419",
+    ClaimLogic:     "0xe07709d844D6F576c5B4022c4cCE126740E7Dd25",
+    TreasuryLogic:  "0x10501078C355600e04A3445b90b3fDd65b28C39D",
+    KernelLogic:    "0xff1275e34373024078155419fAa8C95Cdc59E698",
+    DaoFactory:     "0x24e16Bc54A2f1Bcf832f1fc6fCC2356b8f8DF2Da"
+  },
   // Add other networks as needed
 };
 
-export function getContractAddress(name: keyof typeof CONTRACT_ADDRESSES["amoy"], network: keyof typeof CONTRACT_ADDRESSES = "amoy") {
+export function getContractAddress(
+  name: keyof typeof CONTRACT_ADDRESSES["amoy"],
+  network: keyof typeof CONTRACT_ADDRESSES = "amoy"
+) {
   return CONTRACT_ADDRESSES[network][name];
-} 
+}
