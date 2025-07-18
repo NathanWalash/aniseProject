@@ -163,6 +163,21 @@ export default function Step3Review({ template, config, onBack, onReset, agreed,
           >Terms of Service and Privacy Policy</Text>
         </Text>
       </TouchableOpacity>
+
+      {/* Deploy Button */}
+      <TouchableOpacity
+        style={[styles.deployButton, agreed ? styles.deployButtonActive : styles.deployButtonDisabled]}
+        onPress={async () => {
+          if (!agreed) {
+            Alert.alert('Agreement Required', 'You must agree to the terms before deploying.');
+            return;
+          }
+          await deployAnise(template, config);
+        }}
+        disabled={!agreed}
+      >
+        <Text style={styles.deployButtonText}>Deploy</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -249,5 +264,30 @@ const styles = StyleSheet.create({
     color: '#2563eb',
     textDecorationLine: 'underline',
     fontWeight: 'bold',
+  },
+  deployButton: {
+    marginTop: 18,
+    backgroundColor: '#2563eb',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  deployButtonActive: {
+    opacity: 1,
+  },
+  deployButtonDisabled: {
+    backgroundColor: '#a5b4fc',
+    opacity: 0.6,
+  },
+  deployButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
   },
 }); 

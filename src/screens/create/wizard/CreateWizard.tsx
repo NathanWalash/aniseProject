@@ -116,16 +116,7 @@ export default function CreateWizard() {
         >
           <Text style={styles.navButtonTextSecondary}>Previous Step</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.navButton, agreed ? styles.navButtonPrimary : styles.navButtonDisabled]}
-          onPress={() => {
-            // Deploy logic should be handled in Step3Review, but for now just reset
-            reset();
-          }}
-          disabled={!agreed}
-        >
-          <Text style={styles.navButtonTextPrimary}>Deploy</Text>
-        </TouchableOpacity>
+        {/* Deploy button removed; handled in Step3Review */}
       </>
     );
   }
