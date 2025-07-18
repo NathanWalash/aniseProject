@@ -77,32 +77,17 @@ export async function deployAnise(template: Template, config: Record<string, any
       // Do not set gasLimit; let MetaMask estimate it for best compatibility.
     };
 
-    Alert.alert('Debug', 'About to send createDao transaction via WalletConnect.');
-    console.log('[deployAnise] Prepared createDao tx:', tx);
-
-    // Prompt user to open MetaMask before sending
-    setTimeout(() => {
-      Alert.alert(
-        'Action Required',
-        'Please open MetaMask to confirm the DAO deployment transaction.',
-        [
-          { text: 'Open MetaMask', onPress: () => Linking.openURL('metamask://') },
-          { text: 'OK' },
-        ]
-      );
-    }, 500);
+    // Open MetaMask for user confirmation
+    Linking.openURL('metamask://');
 
     // Send transaction via WalletConnect
     const txHash = await walletConnectService.sendTransaction(tx);
-    Alert.alert('Debug', `Transaction sent! Hash: ${txHash}`);
-    console.log('[deployAnise] Transaction hash:', txHash);
-
-    // Always prompt to open MetaMask after sending
+    // After sending, open MetaMask again to ensure user sees the prompt
     setTimeout(() => {
       Linking.openURL('metamask://');
     }, 500);
 
-    // Wait for confirmation (optional: poll or let user check Polyscan)
+    // Show only final confirmation with Polyscan link
     Alert.alert(
       'Transaction Sent',
       `Your DAO deployment transaction was sent!\n\nTx Hash: ${txHash}\n\nYou can track it on Polyscan. Once confirmed, your DAO will be live.`,
@@ -112,6 +97,7 @@ export async function deployAnise(template: Template, config: Record<string, any
       ]
     );
   } catch (err: any) {
+    // Only show a single error alert if deployment fails
     Alert.alert('Deployment Error', err?.message || String(err));
     console.log('[deployAnise] Deployment error:', err);
   }
