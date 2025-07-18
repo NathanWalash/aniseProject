@@ -14,6 +14,7 @@ import ProfileIcon from '../assets/icons/profile_icon.svg';
 import { SvgProps } from 'react-native-svg';
 import PaymentsLinkFlow from './screens/payments/PaymentsLinkFlow';
 import { createStackNavigator } from '@react-navigation/stack';
+import DebugScreen from './screens/debug/DebugScreen';
 
 const Tab = createBottomTabNavigator();
 const ProfileStack = createStackNavigator();
@@ -25,6 +26,7 @@ function ProfileStackScreen({ user, onLogout }: { user: any, onLogout: () => voi
         {() => <ProfileScreen user={user} onLogout={onLogout} />}
       </ProfileStack.Screen>
       <ProfileStack.Screen name="PaymentsLinkFlow" component={PaymentsLinkFlow} options={{ title: 'Link GoCardless' }} />
+      <ProfileStack.Screen name="DebugScreen" component={DebugScreen} options={{ title: 'Debug' }} />
     </ProfileStack.Navigator>
   );
 }

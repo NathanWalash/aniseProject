@@ -1,0 +1,11 @@
+{
+  "templateId": "comprehensive-dao-v1",
+  "name": "Comprehensive DAO",
+  "description": "A comprehensive DAO template with membership, proposal voting, claims, and treasury modules.",
+  "modules": [
+    "MemberModule",
+    "ProposalVotingModule",
+    "ClaimVotingModule",
+    "TreasuryModule"
+  ]
+} 

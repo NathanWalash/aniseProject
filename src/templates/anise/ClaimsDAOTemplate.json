@@ -1,6 +1,11 @@
 {
-  "templateName": "Claims DAO",
-  "templateDescription": "A DAO with membership and claim voting",
-  "modules": ["MemberModule", "ClaimVotingModule"],
-  "templateId": "claims-voting-v1"
+  "templateId": "claims-dao-v1",
+  "name": "Claims DAO",
+  "description": "A DAO for managing and voting on claims, with membership, proposals, and treasury.",
+  "modules": [
+    "MemberModule",
+    "ProposalVotingModule",
+    "ClaimVotingModule",
+    "TreasuryModule"
+  ]
 } 

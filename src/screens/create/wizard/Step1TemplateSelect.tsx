@@ -16,10 +16,14 @@ export default function Step1TemplateSelect({ onSelect, selectedTemplate, setSel
   const [query, setQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const navigation = useNavigation() as any;
-  const filtered = allTemplates.filter(t =>
-    t.templateName.toLowerCase().includes(query.toLowerCase()) ||
-    t.templateDescription.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = allTemplates.filter(t => {
+    const templateName = t.templateName || t.name || '';
+    const templateDescription = t.templateDescription || t.description || '';
+    return (
+      templateName.toLowerCase().includes(query.toLowerCase()) ||
+      templateDescription.toLowerCase().includes(query.toLowerCase())
+    );
+  });
 
   const handleExpand = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -44,6 +48,8 @@ export default function Step1TemplateSelect({ onSelect, selectedTemplate, setSel
           ...t,
           initParamsSchema: [], // fallback since JSONs do not include this
         };
+        const templateName = template.templateName || template.name || '';
+        const templateDescription = template.templateDescription || template.description || '';
         const isExpanded = expandedId === template.templateId;
         const isSelected = selectedTemplate?.templateId === template.templateId;
         return (
@@ -55,7 +61,7 @@ export default function Step1TemplateSelect({ onSelect, selectedTemplate, setSel
               { shadowOpacity: isSelected ? 0.18 : 0.08 },
             ]}
             accessible={true}
-            accessibilityLabel={`Template card for ${template.templateName}${isSelected ? ', selected' : ''}`}
+            accessibilityLabel={`Template card for ${templateName}${isSelected ? ', selected' : ''}`}
           >
             <TouchableOpacity
               style={styles.cardHeader}
@@ -67,8 +73,8 @@ export default function Step1TemplateSelect({ onSelect, selectedTemplate, setSel
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                 <Icon name="layers-outline" size={28} color={isSelected ? '#2563eb' : '#888'} style={{ marginRight: 12 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.templateName}>{template.templateName}</Text>
-                  <Text style={styles.templateDescription} numberOfLines={isExpanded ? undefined : 2}>{template.templateDescription}</Text>
+                  <Text style={styles.templateName}>{templateName}</Text>
+                  <Text style={styles.templateDescription} numberOfLines={isExpanded ? undefined : 2}>{templateDescription}</Text>
                 </View>
               </View>
               <TouchableOpacity

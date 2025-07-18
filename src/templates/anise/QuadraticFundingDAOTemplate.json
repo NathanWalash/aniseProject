@@ -1,6 +1,11 @@
 {
-  "templateName": "Quadratic Funding DAO",
-  "templateDescription": "A DAO for quadratic funding of public goods proposals",
-  "modules": ["MemberModule", "QuadraticFundingModule"],
-  "templateId": "quadratic-funding-v1"
+  "templateId": "quadratic-funding-dao-v1",
+  "name": "Quadratic Funding DAO",
+  "description": "A DAO for quadratic funding of community projects, with membership, proposals, claims, and treasury.",
+  "modules": [
+    "MemberModule",
+    "ProposalVotingModule",
+    "ClaimVotingModule",
+    "TreasuryModule"
+  ]
 } 

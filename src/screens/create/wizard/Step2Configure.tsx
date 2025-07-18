@@ -8,6 +8,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 export const baseParams = [
   { name: 'daoName', label: 'Anise Name', widget: 'text', help: 'The name for your group. This will be visible to members.' },
   { name: 'daoBrief', label: 'Brief Description', widget: 'text', help: 'A short summary of your group\'s purpose.' },
+  { name: 'intendedAudience', label: 'Intended Audience', widget: 'text', help: 'Who is this group for? (e.g. community, donors, etc.)' },
   { name: 'daoMandate', label: 'Mandate', widget: 'textarea', help: 'Describe the mission or rules for your group.' },
   { name: 'isPublic', label: 'Visibility', widget: 'switch', help: 'Public groups are visible in Explore. Private groups are only accessible by invite or code.' },
 ];
@@ -30,14 +31,23 @@ function getModuleCategory(moduleName: string) {
   return 'Other';
 }
 
+// Helper to generate unique config keys for module params
+function getModuleParamKey(moduleName: string, paramName: string) {
+  return `${moduleName}_${paramName}`;
+}
+
 export default function Step2Configure({ template, config, setConfig, onNext, onBack }: Props) {
   const [touched, setTouched] = React.useState<Record<string, boolean>>({});
+  // In paramSchemasByModule, filter out admin, token, and owner fields from params
   const paramSchemasByModule = template.modules.map((moduleName) => {
     const mod = modules[moduleName];
+    let params = mod ? mod.initParamsSchema : [];
+    // Remove admin, token, and owner from user input
+    params = params.filter((p: any) => !['admin', 'token', 'owner'].includes(p.name));
     return {
       moduleName,
       category: getModuleCategory(moduleName),
-      params: mod ? mod.initParamsSchema : [],
+      params,
       description: mod && mod.description ? mod.description : '',
     };
   });
@@ -112,14 +122,18 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
         </View>
       );
     }
+    // Use standard TextInput
     return (
       <View key={param.name} style={{ marginBottom: 20 }}>
-        <FloatingInput
-          label={param.label}
+        <Text style={styles.fieldLabel}>{param.label}</Text>
+        <TextInput
           value={config[param.name] ?? ''}
-          onChangeText={(text: string) => setConfig({ ...config, [param.name]: text })}
+          onChangeText={text => setConfig({ ...config, [param.name]: text })}
           multiline={param.widget === 'textarea'}
-          invalid={invalid}
+          numberOfLines={param.widget === 'textarea' ? 4 : 1}
+          style={[styles.floatingInput, invalid && styles.inputInvalid, param.widget === 'textarea' && { minHeight: 80 }]}
+          placeholder={param.label}
+          placeholderTextColor="#888"
         />
         {param.help && <Text style={styles.fieldHelp}>{param.help}</Text>}
         {invalid && <Text style={styles.inputInvalidText}>This field is required.</Text>}
@@ -127,8 +141,9 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
     );
   };
 
-  const renderField = (param: any) => {
+  const renderField = (param: any, moduleName: string) => {
     const invalid = isFieldInvalid(param);
+    const configKey = getModuleParamKey(moduleName, param.name);
     if (param.widget === 'slider') {
       return (
         <View key={param.name} style={{ marginBottom: 20 }}>
@@ -136,11 +151,11 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
           <Slider
             minimumValue={param.min}
             maximumValue={param.max}
-            value={config[param.name] ?? param.default}
-            onValueChange={(value: number) => setConfig({ ...config, [param.name]: value })}
+            value={config[configKey] ?? param.default}
+            onValueChange={(value: number) => setConfig({ ...config, [configKey]: value })}
             step={1}
           />
-          <Text>{config[param.name] ?? param.default}</Text>
+          <Text>{config[configKey] ?? param.default}</Text>
           {param.help && <Text style={styles.fieldHelp}>{param.help}</Text>}
         </View>
       );
@@ -148,26 +163,36 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
     if (param.widget === 'number') {
       return (
         <View key={param.name} style={{ marginBottom: 20 }}>
-          <FloatingInput
-            label={param.label}
-            value={String(config[param.name] ?? param.default)}
-            onChangeText={(text: string) => setConfig({ ...config, [param.name]: Number(text) })}
+          <Text style={styles.fieldLabel}>{param.label}</Text>
+          <TextInput
+            value={String(config[configKey] ?? param.default)}
+            onChangeText={text => setConfig({ ...config, [configKey]: Number(text) })}
             keyboardType="numeric"
-            invalid={invalid}
+            style={[styles.floatingInput, invalid && styles.inputInvalid]}
+            placeholder={param.label}
+            placeholderTextColor="#888"
           />
           {param.help && <Text style={styles.fieldHelp}>{param.help}</Text>}
           {invalid && <Text style={styles.inputInvalidText}>This field is required.</Text>}
         </View>
       );
     }
+    // Use standard TextInput for all other types
     return (
       <View key={param.name} style={{ marginBottom: 20 }}>
-        <FloatingInput
-          label={param.label}
-          value={config[param.name] ?? ''}
-          onChangeText={(text: string) => setConfig({ ...config, [param.name]: text })}
+        <Text style={styles.fieldLabel}>{param.label}</Text>
+        <TextInput
+          value={config[configKey] ?? ''}
+          onChangeText={text => setConfig({ ...config, [configKey]: text })}
           multiline={param.widget === 'textarea'}
-          invalid={invalid}
+          numberOfLines={param.widget === 'textarea' ? 4 : 1}
+          style={[
+            styles.textInputBox,
+            invalid && styles.inputInvalid,
+            param.widget === 'textarea' && { minHeight: 80 }
+          ]}
+          placeholder={param.label}
+          placeholderTextColor="#bbb"
         />
         {param.help && <Text style={styles.fieldHelp}>{param.help}</Text>}
         {invalid && <Text style={styles.inputInvalidText}>This field is required.</Text>}
@@ -189,8 +214,9 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
     const mod = modules[moduleName];
     return mod ? mod.initParamsSchema : [];
   });
-  const allModuleFilled = paramSchemas.every((param: { name: string }) => {
-    const key = param.name;
+  // When checking if all module fields are filled, use the unique config keys
+  const allModuleFilled = paramSchemas.every((param: any) => {
+    const key = param.moduleName ? getModuleParamKey(param.moduleName, param.name) : param.name;
     return config[key] !== undefined && config[key] !== '';
   });
   const allFilled = allBaseFilled && allModuleFilled;
@@ -216,7 +242,7 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
                 </View>
                 {description ? <Text style={styles.moduleDescription}>{description}</Text> : null}
                 {params.length === 0 && <Text style={styles.moduleNoParams}>No parameters required.</Text>}
-                {params.map(renderField)}
+                {params.map(param => renderField(param, moduleName))}
               </View>
             ))}
           </>
@@ -226,6 +252,7 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
   );
 }
 
+// Improved text input box style
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -360,5 +387,20 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 13,
     marginBottom: 8,
+  },
+  textInputBox: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 15,
+    backgroundColor: '#f6f8fa',
+    color: '#222',
+    marginTop: 6,
+    marginBottom: 2,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
   },
 }); 

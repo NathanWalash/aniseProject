@@ -1,5 +1,5 @@
 {
-  "moduleName": "ClaimVotingModule",
+  "moduleName": "ProposalVotingModule",
   "initParamsSchema": [
     {
       "name": "approvalThreshold",
@@ -8,7 +8,7 @@
       "widget": "slider",
       "min": 1,
       "max": 100,
-      "default": 50
+      "default": 51
     }
   ]
 } 

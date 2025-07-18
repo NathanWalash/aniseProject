@@ -1,13 +1,13 @@
 import MemberModule from './MemberModule.json';
+import ProposalVotingModule from './ProposalVotingModule.json';
 import ClaimVotingModule from './ClaimVotingModule.json';
-import InsuranceModule from './InsuranceModule.json';
-import QuadraticFundingModule from './QuadraticFundingModule.json';
+import TreasuryModule from './TreasuryModule.json';
 
 const modules: Record<string, any> = {
   MemberModule,
+  ProposalVotingModule,
   ClaimVotingModule,
-  InsuranceModule,
-  QuadraticFundingModule,
+  TreasuryModule,
 };
 
 export default modules; 

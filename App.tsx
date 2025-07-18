@@ -57,6 +57,11 @@ export default function App() {
   const [showWelcome, setShowWelcome] = useState(true); // Always true for debugging
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
 
+  // Initialize WalletConnect globally on app load
+  useEffect(() => {
+    walletConnectService.init();
+  }, []);
+
   useEffect(() => {
     setShowWelcome(true); // Force show welcome splash screens on every mount
     const checkToken = async () => {

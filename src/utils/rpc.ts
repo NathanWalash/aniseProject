@@ -1,0 +1,1 @@
+export const AMOY_RPC_URL = "https://polygon-amoy.infura.io/v3/e3899c2e9571490db9a718222ccf6649"; 
