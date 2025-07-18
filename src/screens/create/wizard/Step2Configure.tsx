@@ -186,9 +186,13 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
           onChangeText={text => setConfig({ ...config, [configKey]: text })}
           multiline={param.widget === 'textarea'}
           numberOfLines={param.widget === 'textarea' ? 4 : 1}
-          style={[styles.floatingInput, invalid && styles.inputInvalid, param.widget === 'textarea' && { minHeight: 80 }]}
+          style={[
+            styles.textInputBox,
+            invalid && styles.inputInvalid,
+            param.widget === 'textarea' && { minHeight: 80 }
+          ]}
           placeholder={param.label}
-          placeholderTextColor="#888"
+          placeholderTextColor="#bbb"
         />
         {param.help && <Text style={styles.fieldHelp}>{param.help}</Text>}
         {invalid && <Text style={styles.inputInvalidText}>This field is required.</Text>}
@@ -248,6 +252,7 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
   );
 }
 
+// Improved text input box style
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -382,5 +387,20 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 13,
     marginBottom: 8,
+  },
+  textInputBox: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 15,
+    backgroundColor: '#f6f8fa',
+    color: '#222',
+    marginTop: 6,
+    marginBottom: 2,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
   },
 }); 

@@ -7,6 +7,11 @@ import { API_BASE_URL } from '../../../utils/api';
 import Icon from 'react-native-vector-icons/Ionicons';
 import modules from '../../../templates/modules';
 
+// Helper to generate unique config keys for module params (same as Step2Configure)
+function getModuleParamKey(moduleName: string, paramName: string) {
+  return `${moduleName}_${paramName}`;
+}
+
 const baseParams = [
   { name: 'daoName', label: 'DAO Name' },
   { name: 'daoBrief', label: 'Brief Description' },
@@ -91,13 +96,19 @@ export default function Step3Review({ template, config, onBack, onReset, agreed,
     const params = mod && mod.initParamsSchema ? mod.initParamsSchema : [];
     // Only show user-configurable params (should match Step2Configure filtering)
     const userParams = params.filter((p: any) => !['admin', 'token', 'owner'].includes(p.name));
-    const paramRows = userParams.map((param: any) => (
-      <KeyValueRow
-        key={param.name}
-        label={param.label || param.name}
-        value={config[param.name] !== undefined ? String(config[param.name]) : '-'}
-      />
-    ));
+    const paramRows = userParams.map((param: any) => {
+      const configKey = getModuleParamKey(moduleName, param.name);
+      // Show default if not set
+      const value = config[configKey] !== undefined
+        ? String(config[configKey])
+        : (param.default !== undefined ? String(param.default) : '-');
+      return (
+        <View key={param.name} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+          <Text style={{ color: '#444', fontWeight: '500', fontSize: 15 }}>{param.label || param.name}</Text>
+          <Text style={{ color: '#2563eb', fontWeight: 'bold', fontSize: 15 }}>{value}</Text>
+        </View>
+      );
+    });
     // Special note for TreasuryModule
     const treasuryNote = moduleName === 'TreasuryModule' ? (
       <Text style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
@@ -105,11 +116,19 @@ export default function Step3Review({ template, config, onBack, onReset, agreed,
         {' '}Token address and treasury owner will be set automatically during deployment.
       </Text>
     ) : null;
+    // Special note for MemberModule
+    const memberNote = moduleName === 'MemberModule' ? (
+      <Text style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
+        <Icon name="information-circle-outline" size={14} color="#2563eb" />
+        {' '}The initial admin will be set to your wallet address upon deployment.
+      </Text>
+    ) : null;
     return (
-      <View key={moduleName} style={{ marginBottom: 18 }}>
-        <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#2563eb', marginBottom: 6 }}>{moduleName.replace('Module', '')}</Text>
+      <View key={moduleName} style={{ marginBottom: 18, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' }}>
+        <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#2563eb', marginBottom: 8 }}>{moduleName.replace('Module', '')} Module</Text>
         {paramRows.length > 0 ? paramRows : <Text style={styles.kvValue}>No parameters configured.</Text>}
         {treasuryNote}
+        {memberNote}
       </View>
     );
   });
@@ -129,12 +148,6 @@ export default function Step3Review({ template, config, onBack, onReset, agreed,
         </View>} icon="eye-outline" />
         <KeyValueRow label="Created By" value={profileLoading ? <ActivityIndicator size="small" color="#2563eb" /> : finalConfig.createdBy} icon="person-outline" />
         <KeyValueRow label="Date Created" value={formatDate(finalConfig.dateCreated)} icon="calendar-outline" />
-        <View style={{ marginTop: 10 }}>
-          <Text style={{ color: '#888', fontSize: 13 }}>
-            <Icon name="information-circle-outline" size={14} color="#2563eb" />
-            {' '}Note: Admin address, treasury token, and treasury owner will be set automatically during deployment.
-          </Text>
-        </View>
       </View>
 
       {/* Module Configuration Card */}
