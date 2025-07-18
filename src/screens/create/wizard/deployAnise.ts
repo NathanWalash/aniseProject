@@ -74,6 +74,7 @@ export async function deployAnise(template: Template, config: Record<string, any
       to: factoryAddress,
       data,
       chainId: CHAIN_ID,
+      // Do not set gasLimit; let MetaMask estimate it for best compatibility.
     };
 
     Alert.alert('Debug', 'About to send createDao transaction via WalletConnect.');
