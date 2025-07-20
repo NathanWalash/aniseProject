@@ -23,6 +23,12 @@ export class WalletConnectService {
     });
     console.log('[WalletConnect] Initialized with metadata:', metadata);
 
+    // Add event listener for session_request to silence warning and debug
+    this.client.on("session_request", (event) => {
+      console.log("[WalletConnect] session_request event:", event);
+      // You can handle or ignore as needed
+    });
+
     // Log all sessions for debugging
     const sessions = this.client.session.getAll();
     console.log('[WalletConnect] All sessions:', sessions.map(s => ({

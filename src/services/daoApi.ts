@@ -1,7 +1,7 @@
 import { API_BASE_URL } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export async function createDao(metadata: any, txHash: string) {
+export async function createDao(metadata: any, txHash: string, creatorUid?: string) {
   const idToken = await AsyncStorage.getItem('idToken');
   const res = await fetch(`${API_BASE_URL}/api/daos`, {
     method: 'POST',
@@ -9,7 +9,7 @@ export async function createDao(metadata: any, txHash: string) {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ metadata, txHash }),
+    body: JSON.stringify({ metadata, txHash, creatorUid }),
   });
   const text = await res.text();
   let data;
@@ -22,11 +22,14 @@ export async function createDao(metadata: any, txHash: string) {
   return data;
 }
 
-export async function getDaos() {
-  const res = await fetch(`${API_BASE_URL}/api/daos`);
+export async function getDaos(limit = 20, startAfter?: string) {
+  const url = new URL(`${API_BASE_URL}/api/daos`);
+  url.searchParams.append('limit', String(limit));
+  if (startAfter) url.searchParams.append('startAfter', startAfter);
+  const res = await fetch(url.toString());
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to fetch DAOs');
-  return data;
+  return data.daos;
 }
 
 export async function getDao(daoAddress: string) {
@@ -40,7 +43,6 @@ export async function getDaoModules(daoAddress: string) {
   const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/modules`);
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to fetch DAO modules');
-  return data;
+  return data.modules;
 }
-
 // TODO: Add more DAO-related API calls as needed (proposals, claims, etc.) 
