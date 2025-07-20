@@ -129,27 +129,40 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
         await walletConnectService.init();
         const { uri } = await walletConnectService.connect();
         if (!uri) throw new Error('No WalletConnect URI generated');
-        // Prompt user to open MetaMask to approve the connection
+        // Visually distinct popup for onboarding
         Alert.alert(
           'Connect Wallet',
-          'Please open MetaMask and approve the connection. After approving, return to the app to continue.'
+          'Open MetaMask and approve the connection. After approving, return to the app to continue.',
+          [{ text: 'OK', onPress: () => Linking.openURL(uri) }]
         );
-        await Linking.openURL(uri);
         await walletConnectService.approve(); // Wait for approval
       }
-      // Step 2: Prompt user to sign the message in MetaMask
+      // Step 2: Compare session wallet address to Firestore
+      const sessionAddress = await getWalletAddress();
+      const linkedAddress = profile.wallet?.address;
+      if (linkedAddress && sessionAddress.toLowerCase() !== linkedAddress.toLowerCase()) {
+        Alert.alert(
+          'Wallet Already Linked',
+          'You already have a wallet linked. Please contact support to change it.',
+          [{ text: 'OK' }]
+        );
+        await walletConnectService.disconnect();
+        setWalletConnected(false);
+        setWalletAddress('');
+        return;
+      }
+      // Step 3: Prompt user to sign the message in MetaMask
       Alert.alert(
         'Signature Required',
-        'Please return to MetaMask to sign the signature request. After signing, you will return to the app.'
+        'Return to MetaMask to sign the signature request. After signing, you will return to the app.',
+        [{ text: 'OK' }]
       );
-      // Step 3: Link wallet (sign and send to backend)
       const address = await connectAndLinkWallet(profile.uid);
       setWalletConnected(true);
       setWalletAddress(address);
       setStatus({ message: 'Wallet linked successfully.' });
     } catch (err: any) {
       setWalletError(err.message || 'Failed to connect and link wallet');
-      // If the error is about already having a wallet, disconnect session and reset state
       if (err.message && err.message.includes('already have a wallet linked')) {
         await walletConnectService.disconnect();
         setWalletConnected(false);
@@ -219,6 +232,34 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
     }
     fetchMandate();
   }, []);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      if (walletConnectService.isConnected()) {
+        const sessionAddress = await getWalletAddress();
+        const linkedAddress = profile?.wallet?.address;
+        if (linkedAddress && sessionAddress.toLowerCase() !== linkedAddress.toLowerCase()) {
+          // Session address does not match linked address, disconnect
+          await walletConnectService.disconnect();
+          setWalletConnected(false);
+          setWalletAddress('');
+          setShowReconnectPrompt(true);
+          return;
+        }
+        setWalletConnected(true);
+        setWalletAddress(sessionAddress);
+      }
+      walletConnectService.onSessionDisconnect = () => {
+        setWalletConnected(false);
+        setWalletAddress('');
+        setShowReconnectPrompt(true);
+      };
+    };
+    checkSession();
+    return () => {
+      walletConnectService.onSessionDisconnect = undefined;
+    };
+  }, [profile?.wallet?.address]);
 
   // Floating label input for modern look
   const FloatingInput = ({ label, value, onChangeText, ...props }: any) => {
@@ -476,36 +517,24 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
         </View>
         <View style={styles.card}>
           <Text style={styles.cardHeader}>MetaMask / WalletConnect</Text>
-          <View style={{ marginBottom: 8 }}>
-            {walletConnected ? (
-              <>
-                <Text style={{ marginBottom: 4 }}>Connected: {walletAddress.length > 0 ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Unknown'}</Text>
-                <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#ef4444' }]} onPress={handleDisconnectWallet}>
-                  <Text style={[styles.linkBtnText, { color: '#fff' }]}>Disconnect Wallet</Text>
-                </TouchableOpacity>
-                {/* Debug Button: Only show if wallet is connected */}
-                <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#7B68EE', marginTop: 8 }]} onPress={() => navigation.navigate('DebugScreen')}>
-                  <Text style={[styles.linkBtnText, { color: '#fff' }]}>Debug</Text>
-                </TouchableOpacity>
-              </>
-            ) : showReconnectPrompt ? (
-              <>
-                <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#2563eb' }]} onPress={handleConnectWallet} disabled={walletLoading}>
-                  {walletLoading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.linkBtnText, { color: '#fff' }]}>Reconnect Wallet</Text>}
-                </TouchableOpacity>
-                <View style={{ marginTop: 8, backgroundColor: '#fde68a', padding: 8, borderRadius: 6 }}>
-                  <Text style={{ color: '#92400e', textAlign: 'center' }}>
-                    Your wallet session was disconnected. Please reconnect to continue.
-                  </Text>
-                </View>
-              </>
-            ) : (
-              <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#2563eb' }]} onPress={handleConnectWallet} disabled={walletLoading}>
-                {walletLoading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.linkBtnText, { color: '#fff' }]}>Connect to MetaMask</Text>}
+          {walletConnected && walletAddress ? (
+            <View style={styles.mandateRow}>
+              <Icon name="checkmark-circle" size={18} color="#22c55e" style={{ marginRight: 8 }} />
+              <Text style={styles.mandateText}>Linked ({walletAddress.slice(0, 6)}...{walletAddress.slice(-4)})</Text>
+              <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#ef4444', marginLeft: 8 }]} onPress={handleDisconnectWallet}>
+                <Text style={[styles.linkBtnText, { color: '#fff' }]}>Disconnect Wallet</Text>
               </TouchableOpacity>
-            )}
-            {walletError && <Text style={{ color: 'red', marginTop: 4 }}>{walletError}</Text>}
-          </View>
+            </View>
+          ) : (
+            <View style={styles.mandateRow}>
+              <Icon name="close-circle" size={18} color="#ef4444" style={{ marginRight: 8 }} />
+              <Text style={styles.mandateText}>Not Linked</Text>
+              <TouchableOpacity style={[styles.linkBtn, { backgroundColor: '#2563eb', marginLeft: 8 }]} onPress={handleConnectWallet} disabled={walletLoading}>
+                {walletLoading ? <ActivityIndicator color="#fff" /> : <Text style={[styles.linkBtnText, { color: '#fff' }]}>Connect Wallet</Text>}
+              </TouchableOpacity>
+            </View>
+          )}
+          {walletError && <Text style={{ color: 'red', marginTop: 4 }}>{walletError}</Text>}
         </View>
 
         {/* Status Message */}
