@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../utils/api';
 
+// Calls GET /api/daos/:daoAddress/claims to list all claims for a DAO.
 export async function getClaims(daoAddress: string, limit = 20, startAfter?: string) {
   const url = new URL(`${API_BASE_URL}/api/daos/${daoAddress}/claims`);
   url.searchParams.append('limit', String(limit));
@@ -10,6 +11,7 @@ export async function getClaims(daoAddress: string, limit = 20, startAfter?: str
   return data.claims;
 }
 
+// Calls GET /api/daos/:daoAddress/claims/:claimId to get claim details.
 export async function getClaim(daoAddress: string, claimId: string) {
   const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/claims/${claimId}`);
   const data = await res.json();
@@ -17,6 +19,7 @@ export async function getClaim(daoAddress: string, claimId: string) {
   return data;
 }
 
+// Calls GET /api/daos/:daoAddress/claims/:claimId/votes to get the votes object for a claim.
 export async function getClaimVotes(daoAddress: string, claimId: string) {
   const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/claims/${claimId}/votes`);
   const data = await res.json();

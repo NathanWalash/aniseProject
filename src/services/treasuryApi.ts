@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../utils/api';
 
+// Calls GET /api/daos/:daoAddress/treasury to get treasury info for a DAO.
 export async function getTreasury(daoAddress: string) {
   const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/treasury`);
   const data = await res.json();
@@ -7,6 +8,7 @@ export async function getTreasury(daoAddress: string) {
   return data;
 }
 
+// Calls GET /api/daos/:daoAddress/treasury/transactions to list treasury transactions for a DAO.
 export async function getTreasuryTransactions(daoAddress: string, limit = 20, startAfter?: string) {
   const url = new URL(`${API_BASE_URL}/api/daos/${daoAddress}/treasury/transactions`);
   url.searchParams.append('limit', String(limit));
