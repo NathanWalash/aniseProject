@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Button, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Clipboard } from 'react-native';
+import { View, Button, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity, Clipboard, Linking } from 'react-native';
 import { getCounterValue, incrementCounter, decrementCounter } from '../../services/contractService';
 import {
   getAllDaos, getDaoMetadata, getDaoModules, getPublicDaos, getDaosByTemplate, getDaosByCreator,
@@ -691,6 +691,30 @@ const handleGetTreasuryAddressAndBalance = async () => {
   }
 };
 
+const [txHashToCheck, setTxHashToCheck] = useState('');
+const [txStatus, setTxStatus] = useState<string | null>(null);
+const [txReceipt, setTxReceipt] = useState<any | null>(null);
+
+async function handleCheckTxStatus() {
+  setTxStatus(null);
+  setTxReceipt(null);
+  if (!txHashToCheck) {
+    setTxStatus('Please enter a transaction hash.');
+    return;
+  }
+  try {
+    setTxStatus('Checking...');
+    const receipt = await provider.getTransactionReceipt(txHashToCheck);
+    if (!receipt) {
+      setTxStatus('Transaction not found.');
+      return;
+    }
+    setTxReceipt(receipt);
+    setTxStatus(receipt.status === 1 ? 'Success' : 'Failed');
+  } catch (e: any) {
+    setTxStatus(e.message || 'Error fetching transaction');
+  }
+}
 
 // Main render: UI for each section, collapsible, with debug log area at the bottom
 return (
@@ -1067,6 +1091,24 @@ return (
         )}
       </View>
     )}
+    <View style={{ marginVertical: 16, padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8 }}>
+      <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>Check Transaction Status</Text>
+      <TextInput
+        placeholder="Enter tx hash"
+        value={txHashToCheck}
+        onChangeText={setTxHashToCheck}
+        style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 8, marginBottom: 8 }}
+        autoCapitalize="none"
+        autoCorrect={false}
+      />
+      <Button title="Check Status" onPress={handleCheckTxStatus} />
+      {txStatus && <Text style={{ marginTop: 8 }}>Status: {txStatus}</Text>}
+      {txReceipt && (
+        <TouchableOpacity onPress={() => Linking.openURL(`https://amoy.polygonscan.com/tx/${txHashToCheck}`)}>
+          <Text style={{ color: 'blue', marginTop: 8 }}>View on Polyscan</Text>
+        </TouchableOpacity>
+      )}
+    </View>
     {/* Debug Log Area */}
     <View style={styles.divider} />
     <Text style={styles.header}>Debug Log</Text>

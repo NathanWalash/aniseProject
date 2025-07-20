@@ -5,6 +5,8 @@ import modules from '../../../templates/modules';
 import { getContractAddress } from '../../../utils/contractAddresses';
 import DaoFactoryAbiJson from '../../../services/abis/DaoFactory.json';
 import { walletConnectService } from '../../../../wallet/walletConnectInstance';
+import { getWalletAddress } from '../../../services/walletApi';
+import { createDao } from '../../../services/daoApi';
 
 const DaoFactoryAbi = DaoFactoryAbiJson.abi || DaoFactoryAbiJson;
 const CHAIN_ID = 80002; // Polygon Amoy
@@ -23,14 +25,19 @@ function encodeInitData(moduleName: string, config: Record<string, any>, adminAd
   return '0x';
 }
 
-export async function deployAnise(template: Template, config: Record<string, any>) {
+export async function deployAnise(template: Template, config: Record<string, any>, linkedAddress: string) {
   try {
     if (!walletConnectService.isConnected() || !walletConnectService.session) {
       Alert.alert('Wallet Not Connected', 'Please connect your wallet before deploying.');
       return;
     }
-    const signerAddress = walletConnectService.session.namespaces.eip155.accounts[0].split(':').pop();
+    const signerAddress = await getWalletAddress();
     if (!signerAddress) throw new Error('Could not get wallet address');
+    // Ensure the session address matches the linked address
+    if (linkedAddress && signerAddress.toLowerCase() !== linkedAddress.toLowerCase()) {
+      Alert.alert('Wrong Wallet', 'Please connect the wallet you have linked to your account.');
+      return;
+    }
 
     // Prepare module addresses and init data
     const moduleKeys = template.modules;
@@ -86,7 +93,8 @@ export async function deployAnise(template: Template, config: Record<string, any
     setTimeout(() => {
       Linking.openURL('metamask://');
     }, 500);
-
+    // Add DAO to Firestore via backend
+    await createDao(metadata, txHash);
     // Show only final confirmation with Polyscan link
     Alert.alert(
       'Transaction Sent',

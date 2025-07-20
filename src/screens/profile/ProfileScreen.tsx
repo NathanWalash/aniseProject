@@ -30,6 +30,10 @@ interface Profile {
   lastName: string;
   dateOfBirth: string;
   email: string;
+  uid?: string;
+  wallet?: {
+    address: string;
+  };
 }
 
 type ProfileScreenProps = { onLogout: () => void };
@@ -535,6 +539,12 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
             </View>
           )}
           {walletError && <Text style={{ color: 'red', marginTop: 4 }}>{walletError}</Text>}
+          <TouchableOpacity
+            style={{ marginTop: 12, backgroundColor: '#007AFF', padding: 10, borderRadius: 8, alignItems: 'center' }}
+            onPress={() => navigation.navigate('DebugScreen')}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Open Debug Page</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Status Message */}
