@@ -23,6 +23,7 @@ import DatePicker from 'react-native-date-picker';
 import Constants from 'expo-constants';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { walletConnectService } from '../../../wallet/walletConnectInstance';
+import { connectAndLinkWallet, getWalletAddress } from '../../services/walletApi';
 
 interface Profile {
   firstName: string;
@@ -98,8 +99,11 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [walletError, setWalletError] = useState<string | null>(null);
   const [showReconnectPrompt, setShowReconnectPrompt] = useState(false);
 
+  // Assume userId is available from props or app state
+  const userId = profile?.uid || '';
+
   // Helper to get wallet address from session
-  const getWalletAddress = (): string => {
+  const getWalletAddressFromSession = (): string => {
     if (walletConnectService.session && walletConnectService.session.namespaces?.eip155?.accounts?.length) {
       const full = walletConnectService.session.namespaces.eip155.accounts[0];
       const addr = full.split(":").pop();
@@ -119,15 +123,38 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
     setWalletLoading(true);
     setWalletError(null);
     try {
-      await ensureWalletInit();
-      const { uri } = await walletConnectService.connect();
-      if (!uri) throw new Error('No WalletConnect URI generated');
-      await Linking.openURL(uri);
-      await walletConnectService.approve();
+      if (!profile?.uid) throw new Error('User ID not found.');
+      // Step 1: Connect wallet if not already connected
+      if (!walletConnectService.isConnected()) {
+        await walletConnectService.init();
+        const { uri } = await walletConnectService.connect();
+        if (!uri) throw new Error('No WalletConnect URI generated');
+        // Prompt user to open MetaMask to approve the connection
+        Alert.alert(
+          'Connect Wallet',
+          'Please open MetaMask and approve the connection. After approving, return to the app to continue.'
+        );
+        await Linking.openURL(uri);
+        await walletConnectService.approve(); // Wait for approval
+      }
+      // Step 2: Prompt user to sign the message in MetaMask
+      Alert.alert(
+        'Signature Required',
+        'Please return to MetaMask to sign the signature request. After signing, you will return to the app.'
+      );
+      // Step 3: Link wallet (sign and send to backend)
+      const address = await connectAndLinkWallet(profile.uid);
       setWalletConnected(true);
-      setWalletAddress(getWalletAddress());
+      setWalletAddress(address);
+      setStatus({ message: 'Wallet linked successfully.' });
     } catch (err: any) {
-      setWalletError(err.message || 'Failed to connect wallet');
+      setWalletError(err.message || 'Failed to connect and link wallet');
+      // If the error is about already having a wallet, disconnect session and reset state
+      if (err.message && err.message.includes('already have a wallet linked')) {
+        await walletConnectService.disconnect();
+        setWalletConnected(false);
+        setWalletAddress('');
+      }
     } finally {
       setWalletLoading(false);
     }
@@ -144,9 +171,9 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   useEffect(() => {
     if (walletConnectService.isConnected()) {
       setWalletConnected(true);
-      setWalletAddress(getWalletAddress());
+      // Use the utility to get the address from the session
+      getWalletAddress().then(addr => setWalletAddress(addr));
     }
-    // Listen for session disconnects
     walletConnectService.onSessionDisconnect = () => {
       setWalletConnected(false);
       setWalletAddress('');
@@ -155,7 +182,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
     return () => {
       walletConnectService.onSessionDisconnect = undefined;
     };
-  }, []);
+  }, []); // Only run on mount
 
   useEffect(() => {
     const fetchProfile = async () => {
