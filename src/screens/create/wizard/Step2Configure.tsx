@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Switch, StyleSheet, ScrollView } from 'react-native';
 import Slider from '@react-native-community/slider';
 import modules from '../../../templates/modules';
@@ -37,7 +37,14 @@ function getModuleParamKey(moduleName: string, paramName: string) {
 }
 
 export default function Step2Configure({ template, config, setConfig, onNext, onBack }: Props) {
-  const [touched, setTouched] = React.useState<Record<string, boolean>>({});
+  const [localConfig, setLocalConfig] = useState(config);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // This effect synchronizes the local state with the parent state
+  useEffect(() => {
+    setConfig(localConfig);
+  }, [localConfig, setConfig]);
+
   // In paramSchemasByModule, filter out admin, token, and owner fields from params
   const paramSchemasByModule = template.modules.map((moduleName) => {
     const mod = modules[moduleName];
@@ -55,13 +62,13 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
   // Validation: required if not a switch
   const isFieldInvalid = (param: any) => {
     if (param.widget === 'switch') return false;
-    return touched[param.name] && (!config[param.name] || config[param.name].toString().trim() === '');
+    return touched[param.name] && (!localConfig[param.name] || localConfig[param.name].toString().trim() === '');
   };
 
   // Floating label input
   const FloatingInput = ({ label, value, onChangeText, multiline, invalid, ...props }: any) => {
-    const [focused, setFocused] = React.useState(false);
-    const [localValue, setLocalValue] = React.useState(value ?? '');
+    const [focused, setFocused] = useState(false);
+    const [localValue, setLocalValue] = useState(value ?? '');
     React.useEffect(() => {
       // If parent value changes (e.g., reset), update local
       setLocalValue(value ?? '');
@@ -117,7 +124,7 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
       return (
         <View key={param.name} style={{ marginBottom: 20 }}>
           <Text style={styles.fieldLabel}>{param.label}</Text>
-          <VisibilitySegment value={!!config[param.name]} onChange={v => setConfig({ ...config, [param.name]: v })} />
+          <VisibilitySegment value={!!localConfig[param.name]} onChange={v => setLocalConfig({ ...localConfig, [param.name]: v })} />
           {param.help && <Text style={styles.fieldHelp}>{param.help}</Text>}
         </View>
       );
@@ -127,8 +134,8 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
       <View key={param.name} style={{ marginBottom: 20 }}>
         <Text style={styles.fieldLabel}>{param.label}</Text>
         <TextInput
-          value={config[param.name] ?? ''}
-          onChangeText={text => setConfig({ ...config, [param.name]: text })}
+          value={localConfig[param.name] ?? ''}
+          onChangeText={text => setLocalConfig({ ...localConfig, [param.name]: text })}
           multiline={param.widget === 'textarea'}
           numberOfLines={param.widget === 'textarea' ? 4 : 1}
           style={[styles.floatingInput, invalid && styles.inputInvalid, param.widget === 'textarea' && { minHeight: 80 }]}
@@ -151,11 +158,11 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
           <Slider
             minimumValue={param.min}
             maximumValue={param.max}
-            value={config[configKey] ?? param.default}
-            onValueChange={(value: number) => setConfig({ ...config, [configKey]: value })}
+            value={localConfig[configKey] ?? param.default}
+            onValueChange={(value: number) => setLocalConfig({ ...localConfig, [configKey]: value })}
             step={1}
           />
-          <Text>{config[configKey] ?? param.default}</Text>
+          <Text>{localConfig[configKey] ?? param.default}</Text>
           {param.help && <Text style={styles.fieldHelp}>{param.help}</Text>}
         </View>
       );
@@ -165,8 +172,8 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
         <View key={param.name} style={{ marginBottom: 20 }}>
           <Text style={styles.fieldLabel}>{param.label}</Text>
           <TextInput
-            value={String(config[configKey] ?? param.default)}
-            onChangeText={text => setConfig({ ...config, [configKey]: Number(text) })}
+            value={String(localConfig[configKey] ?? param.default)}
+            onChangeText={text => setLocalConfig({ ...localConfig, [configKey]: Number(text) })}
             keyboardType="numeric"
             style={[styles.floatingInput, invalid && styles.inputInvalid]}
             placeholder={param.label}
@@ -182,8 +189,8 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
       <View key={param.name} style={{ marginBottom: 20 }}>
         <Text style={styles.fieldLabel}>{param.label}</Text>
         <TextInput
-          value={config[configKey] ?? ''}
-          onChangeText={text => setConfig({ ...config, [configKey]: text })}
+          value={localConfig[configKey] ?? ''}
+          onChangeText={text => setLocalConfig({ ...localConfig, [configKey]: text })}
           multiline={param.widget === 'textarea'}
           numberOfLines={param.widget === 'textarea' ? 4 : 1}
           style={[
@@ -206,9 +213,9 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
   };
 
   // Check if all required fields are filled
-  const allBaseFilled = baseParams.every((param: { name: string; widget: string }) => {
+  const allBaseFilled = baseParams.every((param) => {
     if (param.widget === 'switch') return true;
-    return config[param.name] && config[param.name].toString().trim() !== '';
+    return localConfig[param.name] && localConfig[param.name].toString().trim() !== '';
   });
   const paramSchemas = template.modules.flatMap((moduleName) => {
     const mod = modules[moduleName];
@@ -217,7 +224,7 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
   // When checking if all module fields are filled, use the unique config keys
   const allModuleFilled = paramSchemas.every((param: any) => {
     const key = param.moduleName ? getModuleParamKey(param.moduleName, param.name) : param.name;
-    return config[key] !== undefined && config[key] !== '';
+    return localConfig[key] !== undefined && localConfig[key] !== '';
   });
   const allFilled = allBaseFilled && allModuleFilled;
 

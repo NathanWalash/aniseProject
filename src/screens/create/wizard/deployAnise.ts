@@ -12,6 +12,11 @@ const DaoFactoryAbi = DaoFactoryAbiJson.abi || DaoFactoryAbiJson;
 const CHAIN_ID = 80002; // Polygon Amoy
 const POLYSCAN_PREFIX = 'https://amoy.polygonscan.com/address/';
 
+// Helper to generate the unique config key used in the form
+function getModuleParamKey(moduleName: string, paramName: string) {
+  return `${moduleName}_${paramName}`;
+}
+
 function encodeInitData(moduleName: string, config: Record<string, any>, adminAddress: string) {
   const mod = modules[moduleName];
   if (!mod || !mod.initParamsSchema || mod.initParamsSchema.length === 0) return '0x';
@@ -19,8 +24,10 @@ function encodeInitData(moduleName: string, config: Record<string, any>, adminAd
     return ethers.AbiCoder.defaultAbiCoder().encode(['address'], [adminAddress]);
   }
   if (moduleName === 'ProposalVotingModule' || moduleName === 'ClaimVotingModule') {
-    const param = mod.initParamsSchema[0];
-    return ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], [config[param.name] ?? param.default ?? 51]);
+    const param = mod.initParamsSchema[0]; // e.g., { name: 'approvalThreshold', ... }
+    const configKey = getModuleParamKey(moduleName, param.name);
+    const value = config[configKey] ?? param.default ?? 51;
+    return ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], [value]);
   }
   return '0x';
 }
@@ -65,6 +72,32 @@ export async function deployAnise(template: Template, config: Record<string, any
     const tokenAddress = getContractAddress('Token');
     const factoryAddress = getContractAddress('DaoFactory');
 
+    // Build modules object for backend, extracting relevant config for each module
+    const modules: Record<string, any> = {};
+    for (const m of moduleKeys) {
+      const moduleConfig: Record<string, any> = {};
+      
+      // Explicitly check for and assign known config values from the flat form config
+      if (m === 'ProposalVotingModule' || m === 'ClaimVotingModule') {
+        const configKey = getModuleParamKey(m, 'approvalThreshold');
+        if (config[configKey] !== undefined) {
+          moduleConfig.approvalThreshold = config[configKey];
+        }
+      }
+      // Add other module-specific config checks here as needed
+      
+      if (m === 'TreasuryModule') {
+        modules[m] = {
+          address: getContractAddress('TreasuryLogic'),
+          config: moduleConfig
+        };
+      } else {
+        modules[m] = {
+          config: moduleConfig
+        };
+      }
+    }
+
     // Encode the createDao call
     const iface = new Interface(DaoFactoryAbi);
     const data = iface.encodeFunctionData('createDao', [
@@ -93,8 +126,8 @@ export async function deployAnise(template: Template, config: Record<string, any
     setTimeout(() => {
       Linking.openURL('metamask://');
     }, 500);
-    // Add DAO to Firestore via backend
-    await createDao(metadata, txHash);
+    // Add DAO to Firestore via backend (now with modules)
+    await createDao(metadata, txHash, undefined, modules);
     // Show only final confirmation with Polyscan link
     Alert.alert(
       'Transaction Sent',
@@ -104,9 +137,14 @@ export async function deployAnise(template: Template, config: Record<string, any
         { text: 'OK' },
       ]
     );
-  } catch (err: any) {
-    // Only show a single error alert if deployment fails
-    Alert.alert('Deployment Error', err?.message || String(err));
+  } catch (err: unknown) {
+    let errorMsg = 'An unexpected error occurred.';
+    if (err instanceof Error) {
+      errorMsg = err.message;
+    } else if (typeof err === 'string') {
+      errorMsg = err;
+    }
+    Alert.alert('Deployment Error', errorMsg);
     console.log('[deployAnise] Deployment error:', err);
   }
 } 

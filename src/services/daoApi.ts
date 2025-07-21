@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Calls POST /api/daos to create a new DAO after blockchain tx is confirmed.
-export async function createDao(metadata: any, txHash: string, creatorUid?: string) {
+export async function createDao(metadata: any, txHash: string, creatorUid?: string, modules?: any) {
   const idToken = await AsyncStorage.getItem('idToken');
   const res = await fetch(`${API_BASE_URL}/api/daos`, {
     method: 'POST',
@@ -10,7 +10,7 @@ export async function createDao(metadata: any, txHash: string, creatorUid?: stri
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ metadata, txHash, creatorUid }),
+    body: JSON.stringify({ metadata, txHash, creatorUid, modules }),
   });
   const text = await res.text();
   let data;
