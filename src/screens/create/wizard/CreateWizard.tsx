@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, Modal, TouchableOpacity, SafeAreaView, Platform, ScrollView, Dimensions, StyleSheet } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, SafeAreaView, Platform, ScrollView, Dimensions, StyleSheet, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Step1TemplateSelect from './Step1TemplateSelect';
 import Step2Configure from './Step2Configure';
@@ -7,6 +7,7 @@ import Step3Review from './Step3Review';
 import CreateSplashScreens from '../splash/CreateSplashScreens';
 import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
 import { baseParams } from './Step2Configure';
+import { deployAnise } from './deployAnise';
 
 export type Template = {
   templateId: string;
@@ -30,7 +31,7 @@ const stepTitles = [
   'Review Your Anise',
 ];
 
-export default function CreateWizard() {
+export default function CreateWizard({ user }: { user: any }) {
   const [step, setStep] = useState(1);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [config, setConfig] = useState<Record<string, any>>({});
@@ -59,49 +60,37 @@ export default function CreateWizard() {
     setStep(1);
     setSelectedTemplate(null);
     setConfig({});
+    setAgreed(false);
   };
 
   // Navigation buttons for each step
   let navButtons = null;
   if (step === 1) {
     navButtons = (
-      <>
-        <TouchableOpacity
-          style={[styles.navButton, selectedTemplate ? styles.navButtonPrimary : styles.navButtonDisabled]}
-          disabled={!selectedTemplate}
-          onPress={() => selectedTemplate && handleSelectTemplate(selectedTemplate)}
-        >
-          <Text style={styles.navButtonTextPrimary}>Next Step</Text>
-        </TouchableOpacity>
-      </>
+      <TouchableOpacity
+        style={[styles.navButton, styles.navButtonPrimary, { flex: 1 }]}
+        disabled={!selectedTemplate}
+        onPress={() => selectedTemplate && handleSelectTemplate(selectedTemplate)}
+      >
+        <Text style={styles.navButtonTextPrimary}>Next Step</Text>
+      </TouchableOpacity>
     );
   } else if (step === 2 && selectedTemplate) {
-    // Check if all required fields are filled
-    const allBaseFilled = baseParams.every((param: { name: string; widget: string }) => {
-      if (param.widget === 'switch') return true;
-      return config[param.name] && config[param.name].trim() !== '';
-    });
-    const paramSchemas = selectedTemplate.modules.flatMap((moduleName) => {
-      const mod = require('../../../templates/modules')[moduleName];
-      return mod ? mod.initParamsSchema : [];
-    });
-    const allModuleFilled = paramSchemas.every((param: { name: string }) => {
-      const key = param.name;
-      return config[key] !== undefined && config[key] !== '';
-    });
-    const allFilled = allBaseFilled && allModuleFilled;
+    // Only allow next if all required base fields are filled
+    const requiredBaseFields = ['daoName', 'daoBrief', 'intendedAudience', 'daoMandate'];
+    const allBaseFilled = requiredBaseFields.every((field) => config[field] && config[field].toString().trim() !== '');
     navButtons = (
       <>
         <TouchableOpacity
-          style={[styles.navButton, styles.navButtonSecondary]}
+          style={[styles.navButton, styles.navButtonSecondary, { flex: 1, marginRight: 8 }]}
           onPress={() => goToStep(1)}
         >
           <Text style={styles.navButtonTextSecondary}>Previous Step</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.navButton, allFilled ? styles.navButtonPrimary : styles.navButtonDisabled]}
-          onPress={() => handleConfigNext(config)}
-          disabled={!allFilled}
+          style={[styles.navButton, styles.navButtonPrimary, { flex: 1, marginLeft: 8, opacity: allBaseFilled ? 1 : 0.5 }]}
+          onPress={() => allBaseFilled && handleConfigNext(config)}
+          disabled={!allBaseFilled}
         >
           <Text style={styles.navButtonTextPrimary}>Next Step</Text>
         </TouchableOpacity>
@@ -111,12 +100,30 @@ export default function CreateWizard() {
     navButtons = (
       <>
         <TouchableOpacity
-          style={[styles.navButton, styles.navButtonSecondary]}
+          style={[styles.navButton, styles.navButtonSecondary, { flex: 1, marginRight: 8 }]}
           onPress={() => goToStep(2)}
         >
           <Text style={styles.navButtonTextSecondary}>Previous Step</Text>
         </TouchableOpacity>
-        {/* Deploy button removed; handled in Step3Review */}
+        <TouchableOpacity
+          style={[
+            styles.navButton,
+            styles.navButtonPrimary,
+            { flex: 1, marginLeft: 8, opacity: agreed ? 1 : 0.5 },
+          ]}
+          onPress={async () => {
+            if (!agreed) return;
+            if (!user || !user.uid) {
+              Alert.alert('Authentication Error', 'Could not find user information.');
+              return;
+            }
+            const linkedAddress = user.walletAddress;
+            await deployAnise(selectedTemplate, config, linkedAddress, user.uid);
+          }}
+          disabled={!agreed}
+        >
+          <Text style={styles.navButtonTextPrimary}>Deploy</Text>
+        </TouchableOpacity>
       </>
     );
   }
@@ -145,58 +152,55 @@ export default function CreateWizard() {
           <ProgressStep label="Review" removeBtnRow />
         </ProgressSteps>
       </View>
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          ref={scrollViewRef}
-          style={{ flex: 1, marginTop: progressBarHeight, marginBottom: 88 }}
-          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 24 }}
-          keyboardShouldPersistTaps="handled"
+      <ScrollView
+        ref={scrollViewRef}
+        style={{ flex: 1, marginTop: progressBarHeight, marginBottom: 78 }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 8, paddingBottom: 16}}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, textAlign: 'center', color: '#222' }}>{stepTitles[step - 1]}</Text>
+        {step === 1 && (
+          <Step1TemplateSelect
+            onSelect={handleSelectTemplate}
+            step={step}
+            selectedTemplate={selectedTemplate}
+            setSelectedTemplate={setSelectedTemplate}
+          />
+        )}
+        {step === 2 && selectedTemplate && (
+          <Step2Configure
+            template={selectedTemplate}
+            config={config}
+            setConfig={setConfig}
+            onNext={handleConfigNext}
+            onBack={() => goToStep(1)}
+            step={step}
+          />
+        )}
+        {step === 3 && selectedTemplate && (
+          <Step3Review
+            template={selectedTemplate}
+            config={config}
+            onBack={() => goToStep(2)}
+            onReset={reset}
+            step={step}
+            agreed={agreed}
+            setAgreed={setAgreed}
+            user={user}
+          />
+        )}
+        {/* Subtle info link directly after last form component */}
+        <TouchableOpacity
+          onPress={() => setShowInfo(true)}
+          style={{ flexDirection: 'row', alignItems: 'center', opacity: 0.7 }}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={{ fontSize: 22, fontWeight: 'bold', marginBottom: 18, textAlign: 'center', color: '#222' }}>{stepTitles[step - 1]}</Text>
-          {step === 1 && (
-            <Step1TemplateSelect
-              onSelect={handleSelectTemplate}
-              step={step}
-              selectedTemplate={selectedTemplate}
-              setSelectedTemplate={setSelectedTemplate}
-            />
-          )}
-          {step === 2 && selectedTemplate && (
-            <Step2Configure
-              template={selectedTemplate}
-              config={config}
-              setConfig={setConfig}
-              onNext={handleConfigNext}
-              onBack={() => goToStep(1)}
-              step={step}
-            />
-          )}
-          {step === 3 && selectedTemplate && (
-            <Step3Review
-              template={selectedTemplate}
-              config={config}
-              onBack={() => goToStep(2)}
-              onReset={reset}
-              step={step}
-              agreed={agreed}
-              setAgreed={setAgreed}
-            />
-          )}
-          {/* Subtle info link directly after last form component */}
-          <View style={{ alignItems: 'center', marginTop: 16, marginBottom: 12 }}>
-            <TouchableOpacity
-              onPress={() => setShowInfo(true)}
-              style={{ flexDirection: 'row', alignItems: 'center', opacity: 0.7 }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Icon name="information-circle-outline" size={20} color="#2563eb" style={{ marginRight: 6 }} />
-              <Text style={{ color: '#2563eb', fontSize: 15, textDecorationLine: 'underline' }}>How this works</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
-      {/* Navigation Buttons fixed at the bottom */}
-      <View style={styles.stickyNav}>{navButtons}</View>
+          <Icon name="information-circle-outline" size={20} color="#2563eb" style={{ marginRight: 6 }} />
+          <Text style={{ color: '#2563eb', fontSize: 15, textDecorationLine: 'underline' }}>How this works</Text>
+        </TouchableOpacity>
+      </ScrollView>
+      {/* Sticky Navigation Buttons at the bottom */}
+      <View style={styles.stickyNavRow}>{navButtons}</View>
       {/* Splash Modal */}
       <Modal visible={showInfo} animationType="slide" onRequestClose={() => setShowInfo(false)} presentationStyle="fullScreen">
         <CreateSplashScreens onDone={() => setShowInfo(false)} />
@@ -218,7 +222,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 0,
   },
-  stickyNav: {
+  stickyNavRow: {
     position: 'absolute',
     left: 0,
     right: 0,

@@ -28,9 +28,10 @@ type Props = {
   step?: number;
   agreed: boolean;
   setAgreed: (v: boolean) => void;
+  user: any; // Add user to props
 };
 
-async function fetchUserProfile() {
+async function fetchUserProfile(uid: string) { // Pass uid to fetch
   try {
     const idToken = await AsyncStorage.getItem('idToken');
     if (!idToken) throw new Error('No auth token found');
@@ -48,24 +49,29 @@ async function fetchUserProfile() {
   }
 }
 
-export default function Step3Review({ template, config, onBack, onReset, agreed, setAgreed }: Props) {
+export default function Step3Review({ template, config, onBack, onReset, agreed, setAgreed, user }: Props) {
   const [creatorName, setCreatorName] = useState<string>('');
   const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
-    fetchUserProfile().then(profile => {
-      if (profile) {
-        setCreatorName(
-          (profile.firstName && profile.lastName)
-            ? `${profile.firstName} ${profile.lastName}`
-            : profile.email || 'Unknown'
-        );
-      } else {
-        setCreatorName('Unknown');
-      }
+    if (user && user.uid) {
+      fetchUserProfile(user.uid).then(profile => {
+        if (profile) {
+          setCreatorName(
+            (profile.firstName && profile.lastName)
+              ? `${profile.firstName} ${profile.lastName}`
+              : profile.email || 'Unknown'
+          );
+        } else {
+          setCreatorName(user.email || 'Unknown'); // Fallback to token email
+        }
+        setProfileLoading(false);
+      });
+    } else {
+      setCreatorName('Unknown');
       setProfileLoading(false);
-    });
-  }, []);
+    }
+  }, [user]);
 
   const finalConfig: Record<string, any> = {
     ...config,
@@ -176,21 +182,6 @@ export default function Step3Review({ template, config, onBack, onReset, agreed,
           >Terms of Service and Privacy Policy</Text>
         </Text>
       </TouchableOpacity>
-
-      {/* Deploy Button */}
-      <TouchableOpacity
-        style={[styles.deployButton, agreed ? styles.deployButtonActive : styles.deployButtonDisabled]}
-        onPress={async () => {
-          if (!agreed) {
-            Alert.alert('Agreement Required', 'You must agree to the terms before deploying.');
-            return;
-          }
-          await deployAnise(template, config);
-        }}
-        disabled={!agreed}
-      >
-        <Text style={styles.deployButtonText}>Deploy</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -300,6 +291,40 @@ const styles = StyleSheet.create({
   },
   deployButtonText: {
     color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  stickyNavRow: {
+    flexDirection: 'row',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    zIndex: 10,
+  },
+  navButton: {
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navButtonPrimary: {
+    backgroundColor: '#2563eb',
+  },
+  navButtonSecondary: {
+    backgroundColor: '#e0e7ff',
+  },
+  navButtonTextPrimary: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  navButtonTextSecondary: {
+    color: '#2563eb',
     fontWeight: 'bold',
     fontSize: 18,
   },

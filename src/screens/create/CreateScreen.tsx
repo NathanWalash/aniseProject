@@ -3,7 +3,7 @@ import { Modal } from 'react-native';
 import CreateWizard from './wizard/CreateWizard';
 import CreateSplashScreens from './splash/CreateSplashScreens';
 
-export default function CreateScreen() {
+export default function CreateScreen({ user }: { user: any }) {
   const [showSplash, setShowSplash] = useState(true);
 
   return (
@@ -11,7 +11,7 @@ export default function CreateScreen() {
       <Modal visible={showSplash} animationType="slide" onRequestClose={() => setShowSplash(false)} presentationStyle="fullScreen">
         <CreateSplashScreens onDone={() => setShowSplash(false)} />
       </Modal>
-      {!showSplash && <CreateWizard />}
+      {!showSplash && <CreateWizard user={user} />}
     </>
   );
 } 

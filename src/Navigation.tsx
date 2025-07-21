@@ -50,8 +50,12 @@ export default function Navigation({ user, onLogout }: { user: any, onLogout: ()
         })}
       >
         <Tab.Screen name="Explore" component={ExploreScreen} />
-        <Tab.Screen name="Create" component={CreateScreen} />
-        <Tab.Screen name="MyAnises" component={MyAnisesScreen} />
+        <Tab.Screen name="Create">
+          {() => <CreateScreen user={user} />}
+        </Tab.Screen>
+        <Tab.Screen name="MyAnises">
+          {() => <MyAnisesScreen user={user} />}
+        </Tab.Screen>
         <Tab.Screen name="Notifications" component={NotificationsScreen} />
         <Tab.Screen name="Profile">
           {() => <ProfileStackScreen user={user} onLogout={onLogout} />}

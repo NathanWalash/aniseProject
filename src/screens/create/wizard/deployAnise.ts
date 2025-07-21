@@ -5,32 +5,47 @@ import modules from '../../../templates/modules';
 import { getContractAddress } from '../../../utils/contractAddresses';
 import DaoFactoryAbiJson from '../../../services/abis/DaoFactory.json';
 import { walletConnectService } from '../../../../wallet/walletConnectInstance';
+import { getWalletAddress } from '../../../services/walletApi';
+import { createDao } from '../../../services/daoApi';
 
 const DaoFactoryAbi = DaoFactoryAbiJson.abi || DaoFactoryAbiJson;
 const CHAIN_ID = 80002; // Polygon Amoy
 const POLYSCAN_PREFIX = 'https://amoy.polygonscan.com/address/';
 
+// Helper to generate the unique config key used in the form
+function getModuleParamKey(moduleName: string, paramName: string) {
+  return `${moduleName}_${paramName}`;
+}
+
 function encodeInitData(moduleName: string, config: Record<string, any>, adminAddress: string) {
-  const mod = modules[moduleName];
-  if (!mod || !mod.initParamsSchema || mod.initParamsSchema.length === 0) return '0x';
   if (moduleName === 'MemberModule') {
+    // Always encode the admin address, regardless of schema
     return ethers.AbiCoder.defaultAbiCoder().encode(['address'], [adminAddress]);
   }
+  const mod = modules[moduleName];
+  if (!mod || !mod.initParamsSchema || mod.initParamsSchema.length === 0) return '0x';
   if (moduleName === 'ProposalVotingModule' || moduleName === 'ClaimVotingModule') {
-    const param = mod.initParamsSchema[0];
-    return ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], [config[param.name] ?? param.default ?? 51]);
+    const param = mod.initParamsSchema[0]; // e.g., { name: 'approvalThreshold', ... }
+    const configKey = getModuleParamKey(moduleName, param.name);
+    const value = config[configKey] ?? param.default ?? 51;
+    return ethers.AbiCoder.defaultAbiCoder().encode(['uint256'], [value]);
   }
   return '0x';
 }
 
-export async function deployAnise(template: Template, config: Record<string, any>) {
+export async function deployAnise(template: Template, config: Record<string, any>, linkedAddress: string, creatorUid: string) {
   try {
     if (!walletConnectService.isConnected() || !walletConnectService.session) {
       Alert.alert('Wallet Not Connected', 'Please connect your wallet before deploying.');
       return;
     }
-    const signerAddress = walletConnectService.session.namespaces.eip155.accounts[0].split(':').pop();
+    const signerAddress = await getWalletAddress();
     if (!signerAddress) throw new Error('Could not get wallet address');
+    // Ensure the session address matches the linked address
+    if (linkedAddress && signerAddress.toLowerCase() !== linkedAddress.toLowerCase()) {
+      Alert.alert('Wrong Wallet', 'Please connect the wallet you have linked to your account.');
+      return;
+    }
 
     // Prepare module addresses and init data
     const moduleKeys = template.modules;
@@ -58,6 +73,33 @@ export async function deployAnise(template: Template, config: Record<string, any
     const tokenAddress = getContractAddress('Token');
     const factoryAddress = getContractAddress('DaoFactory');
 
+    // Build modules object for backend, extracting relevant config for each module
+    const modules: Record<string, any> = {};
+    for (const m of moduleKeys) {
+      const moduleConfig: Record<string, any> = {};
+
+      // Always set approvalThreshold for voting modules, using default if blank
+      if (m === 'ProposalVotingModule' || m === 'ClaimVotingModule') {
+        const configKey = getModuleParamKey(m, 'approvalThreshold');
+        const paramSchema = modules[m]?.initParamsSchema?.[0];
+        const defaultValue = paramSchema?.default ?? 51;
+        const value = config[configKey] !== undefined ? config[configKey] : defaultValue;
+        moduleConfig.approvalThreshold = value;
+      }
+      // Add other module-specific config checks here as needed
+
+      if (m === 'TreasuryModule') {
+        modules[m] = {
+          address: getContractAddress('TreasuryLogic'),
+          config: moduleConfig
+        };
+      } else {
+        modules[m] = {
+          config: moduleConfig
+        };
+      }
+    }
+
     // Encode the createDao call
     const iface = new Interface(DaoFactoryAbi);
     const data = iface.encodeFunctionData('createDao', [
@@ -67,6 +109,23 @@ export async function deployAnise(template: Template, config: Record<string, any
       treasuryLogic,
       tokenAddress
     ]);
+
+    // Log everything about to be sent to WalletConnect
+    console.log('[deployAnise] About to send transaction with:', {
+      moduleAddresses,
+      initData,
+      metadata,
+      treasuryLogic,
+      tokenAddress,
+      factoryAddress,
+      tx: {
+        from: signerAddress,
+        to: factoryAddress,
+        data,
+        chainId: CHAIN_ID,
+      },
+      modulesForBackend: modules,
+    });
 
     // Prepare transaction
     const tx = {
@@ -82,10 +141,9 @@ export async function deployAnise(template: Template, config: Record<string, any
 
     // Send transaction via WalletConnect
     const txHash = await walletConnectService.sendTransaction(tx);
-    // After sending, open MetaMask again to ensure user sees the prompt
-    setTimeout(() => {
-      Linking.openURL('metamask://');
-    }, 500);
+
+    // Add DAO to Firestore via backend (now with creatorUid and modules)
+    await createDao(metadata, txHash, creatorUid, modules);
 
     // Show only final confirmation with Polyscan link
     Alert.alert(
@@ -96,9 +154,14 @@ export async function deployAnise(template: Template, config: Record<string, any
         { text: 'OK' },
       ]
     );
-  } catch (err: any) {
-    // Only show a single error alert if deployment fails
-    Alert.alert('Deployment Error', err?.message || String(err));
+  } catch (err: unknown) {
+    let errorMsg = 'An unexpected error occurred.';
+    if (err instanceof Error) {
+      errorMsg = err.message;
+    } else if (typeof err === 'string') {
+      errorMsg = err;
+    }
+    Alert.alert('Deployment Error', errorMsg);
     console.log('[deployAnise] Deployment error:', err);
   }
 } 
