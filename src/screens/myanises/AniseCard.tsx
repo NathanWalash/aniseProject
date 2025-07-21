@@ -28,13 +28,19 @@ export const AniseCard: React.FC<Props> = ({ anise, onViewManage }) => (
     <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#23202A', marginBottom: 4 }}>
       {anise.name}
     </Text>
+    {/* Description under the title */}
+    {anise.description ? (
+      <Text style={{ color: '#444', marginBottom: 4, fontSize: 15 }}>
+        {anise.description}
+      </Text>
+    ) : null}
     {/* Members and role */}
     <Text style={{ color: '#6B7280', marginBottom: 2 }}>
       {anise.members} contributors • {anise.role}
     </Text>
     {/* Creation date */}
     <Text style={{ color: '#888', marginBottom: 8, fontSize: 13 }}>
-      Created: {anise.created}
+      Created: {anise.created || 'Unknown'}
     </Text>
     {/* Status */}
     <Text style={{ color: anise.status === 'Active' ? '#22c55e' : '#f59e42', fontWeight: '500', marginBottom: 12 }}>

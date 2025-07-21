@@ -51,7 +51,7 @@ async function refreshIdToken(refreshToken: string): Promise<string | null> {
 }
 
 export default function App() {
-  const [userToken, setUserToken] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [screen, setScreen] = useState<'login' | 'signup' | 'reset' | undefined>(undefined);
   const [showWelcome, setShowWelcome] = useState(true); // Always true for debugging
@@ -62,6 +62,21 @@ export default function App() {
     walletConnectService.init();
   }, []);
 
+  // Fetch the full Firestore user profile
+  const fetchUserProfile = async () => {
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) return null;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      if (!res.ok) return null;
+      return await res.json();
+    } catch {
+      return null;
+    }
+  };
+
   useEffect(() => {
     setShowWelcome(true); // Force show welcome splash screens on every mount
     const checkToken = async () => {
@@ -70,7 +85,12 @@ export default function App() {
       if (token && isTokenExpired(token) && refreshToken) {
         token = await refreshIdToken(refreshToken);
       }
-      setUserToken(token);
+      if (token) {
+        const profile = await fetchUserProfile();
+        setUser(profile);
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     };
     checkToken();
@@ -79,18 +99,18 @@ export default function App() {
   const handleLogout = async () => {
     await AsyncStorage.removeItem('idToken');
     await AsyncStorage.removeItem('refreshToken');
-    setUserToken(null);
+    setUser(null);
     setScreen('login');
   };
 
   const handleLoginSuccess = async () => {
-    const token = await AsyncStorage.getItem('idToken');
-    setUserToken(token);
+    const profile = await fetchUserProfile();
+    setUser(profile);
   };
 
   const handleSignupSuccess = async () => {
-    const token = await AsyncStorage.getItem('idToken');
-    setUserToken(token);
+    const profile = await fetchUserProfile();
+    setUser(profile);
   };
 
   const handleResetSuccess = (msg: string) => {
@@ -106,7 +126,7 @@ export default function App() {
     );
   }
 
-  if (!userToken) {
+  if (!user) {
     if (showWelcome) {
       return <WelcomeSplashScreens onDone={() => { setShowWelcome(false); setScreen(undefined); }} />;
     }
@@ -135,11 +155,6 @@ export default function App() {
   }
 
   // After login/signup, show the main app navigation
-  // Decode the token to get the user object
-  const decoded = userToken ? jwtDecode(userToken) : null;
-  // Map user_id or uid to uid for downstream compatibility
-  const user = decoded ? { ...decoded, uid: (decoded as any).user_id || (decoded as any).uid } : null;
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Navigation user={user} onLogout={handleLogout} />
