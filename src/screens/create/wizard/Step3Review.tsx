@@ -182,27 +182,6 @@ export default function Step3Review({ template, config, onBack, onReset, agreed,
           >Terms of Service and Privacy Policy</Text>
         </Text>
       </TouchableOpacity>
-
-      {/* Deploy Button */}
-      <TouchableOpacity
-        style={[styles.deployButton, agreed ? styles.deployButtonActive : styles.deployButtonDisabled]}
-        onPress={async () => {
-          if (!agreed) {
-            Alert.alert('Agreement Required', 'You must agree to the terms before deploying.');
-            return;
-          }
-          // The user object is now available here
-          if (!user || !user.uid) {
-            Alert.alert('Authentication Error', 'Could not find user information.');
-            return;
-          }
-          const linkedAddress = user.walletAddress; // Assuming walletAddress is on the decoded token
-          await deployAnise(template, config, linkedAddress, user.uid);
-        }}
-        disabled={!agreed}
-      >
-        <Text style={styles.deployButtonText}>Deploy</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -312,6 +291,40 @@ const styles = StyleSheet.create({
   },
   deployButtonText: {
     color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  stickyNavRow: {
+    flexDirection: 'row',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    zIndex: 10,
+  },
+  navButton: {
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navButtonPrimary: {
+    backgroundColor: '#2563eb',
+  },
+  navButtonSecondary: {
+    backgroundColor: '#e0e7ff',
+  },
+  navButtonTextPrimary: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 18,
+  },
+  navButtonTextSecondary: {
+    color: '#2563eb',
     fontWeight: 'bold',
     fontSize: 18,
   },

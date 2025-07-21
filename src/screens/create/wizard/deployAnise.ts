@@ -141,13 +141,10 @@ export async function deployAnise(template: Template, config: Record<string, any
 
     // Send transaction via WalletConnect
     const txHash = await walletConnectService.sendTransaction(tx);
-    // After sending, open MetaMask again to ensure user sees the prompt
-    setTimeout(() => {
-      Linking.openURL('metamask://');
-    }, 500);
 
     // Add DAO to Firestore via backend (now with creatorUid and modules)
     await createDao(metadata, txHash, creatorUid, modules);
+
     // Show only final confirmation with Polyscan link
     Alert.alert(
       'Transaction Sent',
