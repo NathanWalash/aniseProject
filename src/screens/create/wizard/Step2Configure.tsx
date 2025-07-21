@@ -49,8 +49,12 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
   const paramSchemasByModule = template.modules.map((moduleName) => {
     const mod = modules[moduleName];
     let params = mod ? mod.initParamsSchema : [];
-    // Remove admin, token, and owner from user input
-    params = params.filter((p: any) => !['admin', 'token', 'owner'].includes(p.name));
+    // Remove admin, token, and owner from user input (explicitly for MemberModule)
+    if (moduleName === 'MemberModule') {
+      params = params.filter((p: any) => p.name !== 'admin');
+    } else {
+      params = params.filter((p: any) => !['admin', 'token', 'owner'].includes(p.name));
+    }
     return {
       moduleName,
       category: getModuleCategory(moduleName),

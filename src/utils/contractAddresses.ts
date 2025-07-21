@@ -1,5 +1,4 @@
 // src/utils/contractAddresses.ts
-
 type ContractName = 
   | 'DaoFactory' 
   | 'ModuleRegistry' 
@@ -12,14 +11,14 @@ type ContractName =
 
 // AMOY (Polygon Testnet)
 const addresses: Record<ContractName, string> = {
-  DaoFactory: '0xA4EDa6Bf8d644921031cf1af33D58d3d76820C4C',
-  ModuleRegistry: '0xD301c4C7FFA07FBa994C90276E8d36e90204d462',
-  Token: '0x4A130e2805f9E359784CD9089A77Af31005d2916',
-  MemberLogic: '0x40BDAe5cD26f5aE2eF45e1b6676dee84D7B80509',
-  ProposalLogic: '0x7676B80178785181Be7d27299B1828d06FA2610d',
-  ClaimLogic: '0x219385103aF6dcd0E91c14f28DFEF86f62886e05',
-  TreasuryLogic: '0x8E18f88678f05Df975FFEC172bf963D95876aB46',
-  KernelLogic: '0x192e6a56a4dCb97503Bd6FD968Edca75Ff30691c',
+  DaoFactory: '0x0F9ED98ED7FAEC5C057DC2f0A4bAD6F86d88E18e',
+  ModuleRegistry: '0xAb1BE2396334A3962Ea9CE34B75bA033d93d4094',
+  Token: '0x7F9572CE7bc1EDd95b5176791604E110F7516916',
+  MemberLogic: '0x8c21c95Fd6E1c579ba612bB47A6dc720449d30A6',
+  ProposalLogic: '0x1e6c861Ae80082c702dA1750154B0bB568542782',
+  ClaimLogic: '0xcf21df5A43373898DD2327EAE165E6ac1aA2CBFA',
+  TreasuryLogic: '0x43C7B3216DcD6B680971c28160801a87cc9e12f6',
+  KernelLogic: '0x6F4871F494007733A21f5242675EBB8f8a9caf54',
 };
 
 export const getContractAddress = (name: ContractName): string => {

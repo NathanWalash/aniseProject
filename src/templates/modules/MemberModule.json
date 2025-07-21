@@ -1,4 +1,6 @@
 {
-  "moduleName": "MemberModule",
-  "initParamsSchema": []
+  "name": "MemberModule",
+  "initParamsSchema": [
+    { "name": "admin", "type": "address", "label": "Admin Address", "default": "" }
+  ]
 } 

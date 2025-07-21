@@ -18,11 +18,12 @@ function getModuleParamKey(moduleName: string, paramName: string) {
 }
 
 function encodeInitData(moduleName: string, config: Record<string, any>, adminAddress: string) {
-  const mod = modules[moduleName];
-  if (!mod || !mod.initParamsSchema || mod.initParamsSchema.length === 0) return '0x';
   if (moduleName === 'MemberModule') {
+    // Always encode the admin address, regardless of schema
     return ethers.AbiCoder.defaultAbiCoder().encode(['address'], [adminAddress]);
   }
+  const mod = modules[moduleName];
+  if (!mod || !mod.initParamsSchema || mod.initParamsSchema.length === 0) return '0x';
   if (moduleName === 'ProposalVotingModule' || moduleName === 'ClaimVotingModule') {
     const param = mod.initParamsSchema[0]; // e.g., { name: 'approvalThreshold', ... }
     const configKey = getModuleParamKey(moduleName, param.name);
@@ -32,7 +33,7 @@ function encodeInitData(moduleName: string, config: Record<string, any>, adminAd
   return '0x';
 }
 
-export async function deployAnise(template: Template, config: Record<string, any>, linkedAddress: string) {
+export async function deployAnise(template: Template, config: Record<string, any>, linkedAddress: string, creatorUid: string) {
   try {
     if (!walletConnectService.isConnected() || !walletConnectService.session) {
       Alert.alert('Wallet Not Connected', 'Please connect your wallet before deploying.');
@@ -76,16 +77,17 @@ export async function deployAnise(template: Template, config: Record<string, any
     const modules: Record<string, any> = {};
     for (const m of moduleKeys) {
       const moduleConfig: Record<string, any> = {};
-      
-      // Explicitly check for and assign known config values from the flat form config
+
+      // Always set approvalThreshold for voting modules, using default if blank
       if (m === 'ProposalVotingModule' || m === 'ClaimVotingModule') {
         const configKey = getModuleParamKey(m, 'approvalThreshold');
-        if (config[configKey] !== undefined) {
-          moduleConfig.approvalThreshold = config[configKey];
-        }
+        const paramSchema = modules[m]?.initParamsSchema?.[0];
+        const defaultValue = paramSchema?.default ?? 51;
+        const value = config[configKey] !== undefined ? config[configKey] : defaultValue;
+        moduleConfig.approvalThreshold = value;
       }
       // Add other module-specific config checks here as needed
-      
+
       if (m === 'TreasuryModule') {
         modules[m] = {
           address: getContractAddress('TreasuryLogic'),
@@ -108,6 +110,23 @@ export async function deployAnise(template: Template, config: Record<string, any
       tokenAddress
     ]);
 
+    // Log everything about to be sent to WalletConnect
+    console.log('[deployAnise] About to send transaction with:', {
+      moduleAddresses,
+      initData,
+      metadata,
+      treasuryLogic,
+      tokenAddress,
+      factoryAddress,
+      tx: {
+        from: signerAddress,
+        to: factoryAddress,
+        data,
+        chainId: CHAIN_ID,
+      },
+      modulesForBackend: modules,
+    });
+
     // Prepare transaction
     const tx = {
       from: signerAddress,
@@ -126,8 +145,9 @@ export async function deployAnise(template: Template, config: Record<string, any
     setTimeout(() => {
       Linking.openURL('metamask://');
     }, 500);
-    // Add DAO to Firestore via backend (now with modules)
-    await createDao(metadata, txHash, undefined, modules);
+
+    // Add DAO to Firestore via backend (now with creatorUid and modules)
+    await createDao(metadata, txHash, creatorUid, modules);
     // Show only final confirmation with Polyscan link
     Alert.alert(
       'Transaction Sent',

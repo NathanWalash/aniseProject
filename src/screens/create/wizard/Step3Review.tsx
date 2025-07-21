@@ -28,9 +28,10 @@ type Props = {
   step?: number;
   agreed: boolean;
   setAgreed: (v: boolean) => void;
+  user: any; // Add user to props
 };
 
-async function fetchUserProfile() {
+async function fetchUserProfile(uid: string) { // Pass uid to fetch
   try {
     const idToken = await AsyncStorage.getItem('idToken');
     if (!idToken) throw new Error('No auth token found');
@@ -48,24 +49,29 @@ async function fetchUserProfile() {
   }
 }
 
-export default function Step3Review({ template, config, onBack, onReset, agreed, setAgreed }: Props) {
+export default function Step3Review({ template, config, onBack, onReset, agreed, setAgreed, user }: Props) {
   const [creatorName, setCreatorName] = useState<string>('');
   const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
-    fetchUserProfile().then(profile => {
-      if (profile) {
-        setCreatorName(
-          (profile.firstName && profile.lastName)
-            ? `${profile.firstName} ${profile.lastName}`
-            : profile.email || 'Unknown'
-        );
-      } else {
-        setCreatorName('Unknown');
-      }
+    if (user && user.uid) {
+      fetchUserProfile(user.uid).then(profile => {
+        if (profile) {
+          setCreatorName(
+            (profile.firstName && profile.lastName)
+              ? `${profile.firstName} ${profile.lastName}`
+              : profile.email || 'Unknown'
+          );
+        } else {
+          setCreatorName(user.email || 'Unknown'); // Fallback to token email
+        }
+        setProfileLoading(false);
+      });
+    } else {
+      setCreatorName('Unknown');
       setProfileLoading(false);
-    });
-  }, []);
+    }
+  }, [user]);
 
   const finalConfig: Record<string, any> = {
     ...config,
@@ -185,7 +191,13 @@ export default function Step3Review({ template, config, onBack, onReset, agreed,
             Alert.alert('Agreement Required', 'You must agree to the terms before deploying.');
             return;
           }
-          await deployAnise(template, config);
+          // The user object is now available here
+          if (!user || !user.uid) {
+            Alert.alert('Authentication Error', 'Could not find user information.');
+            return;
+          }
+          const linkedAddress = user.walletAddress; // Assuming walletAddress is on the decoded token
+          await deployAnise(template, config, linkedAddress, user.uid);
         }}
         disabled={!agreed}
       >

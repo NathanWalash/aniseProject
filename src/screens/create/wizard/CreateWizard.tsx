@@ -30,7 +30,7 @@ const stepTitles = [
   'Review Your Anise',
 ];
 
-export default function CreateWizard() {
+export default function CreateWizard({ user }: { user: any }) {
   const [step, setStep] = useState(1);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [config, setConfig] = useState<Record<string, any>>({});
@@ -180,6 +180,7 @@ export default function CreateWizard() {
               step={step}
               agreed={agreed}
               setAgreed={setAgreed}
+              user={user} // Pass user down to the review step
             />
           )}
           {/* Subtle info link directly after last form component */}

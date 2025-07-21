@@ -134,10 +134,15 @@ export default function App() {
     }
   }
 
-  // After login/signup, show the main app navigation (no global logout button)
+  // After login/signup, show the main app navigation
+  // Decode the token to get the user object
+  const decoded = userToken ? jwtDecode(userToken) : null;
+  // Map user_id or uid to uid for downstream compatibility
+  const user = decoded ? { ...decoded, uid: (decoded as any).user_id || (decoded as any).uid } : null;
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <Navigation user={userToken} onLogout={handleLogout} />
+      <Navigation user={user} onLogout={handleLogout} />
     </GestureHandlerRootView>
   );
 }
