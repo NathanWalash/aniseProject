@@ -1,433 +1,564 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, SafeAreaView, TextInput, TouchableOpacity, ScrollView, Modal, Pressable, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
-import QRIcon from '../../../assets/icons/QR_icon.svg';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
+  StyleSheet,
+  RefreshControl,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../utils/api';
 
-const groups = [
-  {
-    name: 'Surrey Car Insurance',
-    price: '£50',
-    period: '/month',
-    members: 157,
-    creator: 'John Smith',
-    created: '10 June 2025',
-    mandate: 'To provide affordable car insurance for Surrey residents by pooling resources and negotiating better rates.',
-    isCharity: false,
-    creatorDescription: null
-  },
-  {
-    name: 'Biker Holiday Pot',
-    price: '£275',
-    period: '/one-off',
-    members: 5657,
-    creator: 'John Smith',
-    created: '14 May 2005',
-    mandate: 'To help bikers save together for group holidays and adventures.',
-    isCharity: false,
-    creatorDescription: null
-  },
-  {
-    name: 'School Insurance',
-    price: '£50,000',
-    period: '/yearly',
-    members: 10,
-    creator: 'John Smith',
-    created: '1 January 2025',
-    mandate: 'To ensure all students and staff are protected with comprehensive school insurance.',
-    isCharity: false,
-    creatorDescription: null
-  },
-  {
-    name: 'Travel Insurance',
-    price: '£120',
-    period: '/yearly',
-    members: 320,
-    creator: 'Jane Doe',
-    created: '5 March 2023',
-    mandate: 'To provide group travel insurance for frequent travelers at a reduced cost.',
-    isCharity: false,
-    creatorDescription: null
-  },
-  {
-    name: 'Pet Insurance',
-    price: '£30',
-    period: '/month',
-    members: 80,
-    creator: 'Alice Smith',
-    created: '12 July 2022',
-    mandate: 'To offer affordable pet insurance for all types of pets.',
-    isCharity: false,
-    creatorDescription: null
-  },
-  {
-    name: 'Home Insurance',
-    price: '£400',
-    period: '/yearly',
-    members: 45,
-    creator: 'Bob Brown',
-    created: '20 August 2021',
-    mandate: 'To protect homes and belongings through collective insurance.',
-    isCharity: false,
-    creatorDescription: null
-  },
-  {
-    name: 'Gadget Cover',
-    price: '£15',
-    period: '/month',
-    members: 210,
-    creator: 'Charlie Green',
-    created: '2 February 2024',
-    mandate: 'To insure gadgets and electronics for group members.',
-    isCharity: false,
-    creatorDescription: null
-  },
-  {
-    name: 'Cycling Club',
-    price: '£60',
-    period: '/yearly',
-    members: 150,
-    creator: 'Daisy Blue',
-    created: '18 November 2020',
-    mandate: 'To provide insurance and support for cycling enthusiasts.',
-    isCharity: false,
-    creatorDescription: null
-  },
-  {
-    name: 'Student Health',
-    price: '£200',
-    period: '/yearly',
-    members: 500,
-    creator: 'Eve White',
-    created: '9 September 2019',
-    mandate: 'To ensure students have access to affordable health insurance.',
-    isCharity: false,
-    creatorDescription: null
-  },
-  {
-    name: 'Community Fund',
-    price: '£10',
-    period: '/month',
-    members: 1000,
-    creator: 'Frank Black',
-    created: '1 January 2018',
-    mandate: 'To support community members in times of need through a shared fund.',
-    isCharity: false,
-    creatorDescription: null
-  },
-  {
-    name: 'LA Wildfire Fund',
-    price: 'Any',
-    period: '/donation',
-    members: 3200,
-    creator: 'anise',
-    created: '15 April 2024',
-    mandate: 'To provide rapid, transparent, and community-driven financial support to those affected by wildfires in Los Angeles.',
-    isCharity: true,
-    creatorDescription: 'LA Wildfire Fund is a non-profit Charity DAO. All proceeds go directly to wildfire relief efforts in Los Angeles. Join to see where your donations end up!'
-  },
-];
+interface PublicDAO {
+  daoAddress: string;
+  metadata: {
+    name: string;
+    description: string;
+    intendedAudience: string;
+    mandate: string;
+    isPublic: boolean;
+    templateId: string;
+  };
+  memberCount: number;
+  creator: string;
+  creatorUid?: string; // Add creatorUid field
+  createdAt: any;
+  creatorDetails?: {
+    firstName: string;
+    lastName: string;
+  };
+}
 
-const groupDescriptions = [
-  'A group for Surrey residents to get affordable car insurance together. Share costs and enjoy exclusive benefits.',
-  'Join fellow bikers to save for the ultimate holiday adventure. One-off payment, big memories!',
-  'School insurance for students and staff. Secure, reliable, and tailored for educational needs.',
-  'Travel the world with peace of mind. Our group offers comprehensive yearly travel insurance.',
-  'Protect your furry friends with our pet insurance group. Affordable monthly plans for all pets.',
-  'Home insurance made easy for everyone. Join and get covered for less.',
-  'Gadget lovers unite! Cover your devices for a small monthly fee.',
-  'Cycling enthusiasts can now get yearly cover for all their rides.',
-  'Student health insurance for peace of mind during your studies.',
-  'A community fund for everyone. Contribute a little, help a lot.',
-  'LA Wildfire Fund is a non-profit Charity DAO. All proceeds go directly to wildfire relief efforts in Los Angeles. Join to see where your donations end up!',
-];
-
-const FILTERS = ['All', 'Most Recent', 'Most Popular', 'More'];
+const FILTERS = ['All', 'Recent', 'Popular'];
 
 export default function ExploreScreen() {
   const [search, setSearch] = useState('');
-  const [privateCode, setPrivateCode] = useState('');
+  const [privateAddress, setPrivateAddress] = useState('');
   const [filter, setFilter] = useState('All');
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [openSections, setOpenSections] = useState({
-    category: false,
-    fees: false,
-    groupSize: false,
-    voting: false,
-  });
-  const [showFullHeader, setShowFullHeader] = useState(true);
-  const lastScrollY = useRef(0);
-  const [selectedGroupIdx, setSelectedGroupIdx] = useState<number | null>(null);
-  const wildfireRaised = '£42,500'; // Example amount already raised
-  const wildfireDefaultAmount = 'Any amount';
-  const wildfireDefaultFrequency = 'One-off, Weekly, Monthly';
+  const [daos, setDaos] = useState<PublicDAO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
+  // Add effect to reset and fetch when filter changes
+  useEffect(() => {
+    setPage(1); // Reset page when filter changes
+    fetchPublicDaos(true); // true means reset
+  }, [filter]);
 
-  const handleCloseAdvanced = () => {
-    setShowAdvanced(false);
-    setOpenSections({ category: false, fees: false, groupSize: false, voting: false });
-  };
+  const fetchPublicDaos = async (reset: boolean = false) => {
+    try {
+      console.log('Fetching public DAOs...', { filter, reset });
+      const idToken = await AsyncStorage.getItem('idToken');
+      if (!idToken) throw new Error('Not authenticated');
 
-  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const currentY = e.nativeEvent.contentOffset.y;
-    if (currentY < 20) {
-      setShowFullHeader(true);
-    } else {
-      setShowFullHeader(false);
+      const params = new URLSearchParams({
+        page: String(reset ? 1 : page),
+        limit: '10',
+        ...(search && { search }),
+        ...(filter !== 'All' && { sort: filter.toLowerCase() })
+      });
+
+      const url = `${API_BASE_URL}/api/daos?${params}`;
+      console.log('Fetching from URL:', url);
+
+      const response = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${idToken}` }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`Failed to fetch DAOs: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Received DAOs:', data);
+
+      // Filter for public DAOs first
+      const publicDaos = data.daos.filter((dao: any) => dao.metadata?.isPublic === true);
+      
+      // Fetch creator details for each public DAO
+      const daosWithDetails = await Promise.all(publicDaos.map(async (dao: PublicDAO) => {
+        try {
+          // Get member count from members subcollection
+          const membersSnapshot = await fetch(`${API_BASE_URL}/api/daos/${dao.daoAddress}/members`, {
+            headers: { 'Authorization': `Bearer ${idToken}` }
+          });
+          
+          let memberCount = 0;
+          if (membersSnapshot.ok) {
+            const membersData = await membersSnapshot.json();
+            memberCount = membersData.members.length;
+          }
+
+          // Get creator details from members collection
+          const creatorMemberDoc = await fetch(`${API_BASE_URL}/api/daos/${dao.daoAddress}/members/${dao.creator}`, {
+            headers: { 'Authorization': `Bearer ${idToken}` }
+          });
+
+          let creatorDetails;
+          if (creatorMemberDoc.ok) {
+            const memberData = await creatorMemberDoc.json();
+            console.log('Creator member data:', memberData);
+            if (memberData.uid) {
+              // Use the /auth/me endpoint with the creator's uid
+              const userDoc = await fetch(`${API_BASE_URL}/api/auth/me?uid=${memberData.uid}`, {
+                headers: { 'Authorization': `Bearer ${idToken}` }
+              });
+              if (userDoc.ok) {
+                const userData = await userDoc.json();
+                console.log('Creator user data:', userData);
+                creatorDetails = {
+                  firstName: userData.firstName || '',
+                  lastName: userData.lastName || ''
+                };
+              }
+            }
+          }
+
+          return {
+            ...dao,
+            memberCount,
+            creatorDetails
+          };
+        } catch (err) {
+          console.warn('Failed to fetch details for DAO:', dao.daoAddress, err);
+          return {
+            ...dao,
+            memberCount: 1 // At least the creator is a member
+          };
+        }
+      }));
+
+      console.log('DAOs with details:', daosWithDetails);
+      
+      setDaos(prev => reset ? daosWithDetails : [...prev, ...daosWithDetails]);
+      setHasMore(daosWithDetails.length === 10);
+      setError(null);
+    } catch (err: any) {
+      console.error('Error fetching DAOs:', err);
+      setError(err.message || 'Failed to load DAOs');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  // Filtering logic
-  let filteredGroups = groups;
-  if (filter === 'Most Recent') {
-    filteredGroups = [...groups].sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime()); //Needs to be properly fixed, can be done when configured by 'create
-  } else if (filter === 'Most Popular') {
-    filteredGroups = [...groups].sort((a, b) => b.members - a.members);
-  } else if (filter !== 'All') {
-    // Add more filter logic for other filters if needed
-  }
-  if (search.trim()) {
-    filteredGroups = filteredGroups.filter(group =>
-      group.name.toLowerCase().includes(search.toLowerCase()) ||
-      group.mandate.toLowerCase().includes(search.toLowerCase())
-    );
-  }
+  const handleLoadMore = () => {
+    if (hasMore && !loading) {
+      setPage(p => p + 1);
+      fetchPublicDaos();
+    }
+  };
+
+  const handleSearch = () => {
+    setPage(1);
+    fetchPublicDaos(true);
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setPage(1);
+    fetchPublicDaos(true);
+  };
+
+  const handleJoinPrivate = () => {
+    // TODO: Implement private DAO join logic
+    console.log('Joining private DAO:', privateAddress);
+  };
+
+  const handleJoinRequest = (dao: PublicDAO) => {
+    // TODO: Implement join request logic
+    console.log('Requesting to join:', dao.daoAddress);
+  };
+
+  // Update the filter handler to reset the page
+  const handleFilterChange = (newFilter: string) => {
+    if (newFilter === filter) return; // Don't do anything if filter hasn't changed
+    setFilter(newFilter);
+    // Page reset and fetch will happen in the useEffect
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#F5F5F7] px-2 pt-2">
-      {/* Collapsible Header */}
-      {showFullHeader && (
-        <View className="items-center mb-2 mt-6">
-          <Text className="text-2xl font-bold text-center text-[#23202A] mb-2">Explore and Join Public Groups</Text>
-        </View>
-      )}
-      {/* Prominent Inputs */}
-      {showFullHeader && (
-        <>
-          <TextInput
-            className="bg-white rounded-xl px-5 py-4 mb-3 text-lg border border-gray-300 shadow-sm mx-2"
-            placeholder="Search groups..."
-            placeholderTextColor="#B3AFC2"
-            value={search}
-            onChangeText={setSearch}
-          />
-          <View className="flex-row items-center mx-2 mb-3 bg-white rounded-lg border border-gray-300 shadow-sm" style={{ height: 44 }}>
-            <TextInput
-              className="flex-1 px-4 text-base"
-              placeholder="Enter private group code..."
-              placeholderTextColor="#B3AFC2"
-              value={privateCode}
-              onChangeText={setPrivateCode}
-              style={{ height: 44, backgroundColor: 'transparent' }}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.content}>
+        {/* Header with Title and Refresh */}
+        <View style={styles.headerContainer}>
+          <Text style={styles.title}>Explore Public DAOs</Text>
+          <TouchableOpacity 
+            onPress={handleRefresh}
+            disabled={loading || refreshing}
+            style={[
+              styles.refreshButton,
+              (loading || refreshing) && styles.refreshButtonDisabled
+            ]}
+          >
+            <Icon 
+              name="refresh" 
+              size={20} 
+              color="#fff" 
+              style={refreshing && styles.refreshingIcon} 
             />
-            <TouchableOpacity style={{ paddingHorizontal: 12 }} onPress={() => {/* TODO: open QR code scanner */}}>
-              <QRIcon width={28} height={28} />
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
-      {/* Search Bar (always visible) */}
-      {!showFullHeader && (
-        <TextInput
-          className="bg-white rounded-xl px-5 py-4 mb-3 text-lg border border-gray-300 shadow-sm mx-2"
-          placeholder="Search groups..."
-          placeholderTextColor="#B3AFC2"
-          value={search}
-          onChangeText={setSearch}
-        />
-      )}
-      {/* Filters (always visible) */}
-      <View className="flex-row mt-2 mb-4 px-2 space-x-2 justify-between">
-        {FILTERS.map(f => (
-          <TouchableOpacity
-            key={f}
-            onPress={() => {
-              if (f === 'More') setShowAdvanced(true);
-              else setFilter(f);
-            }}
-            className={`px-4 py-2 rounded-full ${filter === f ? 'bg-[#3B2364]' : 'bg-white border border-gray-300'}`}
-          >
-            <Text className={`${filter === f ? 'text-white' : 'text-[#23202A]'}`}>{f}</Text>
           </TouchableOpacity>
-        ))}
-      </View>
-      {/* Advanced Filter Modal */}
-      <Modal
-        visible={showAdvanced}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={handleCloseAdvanced}
-      >
-        <View style={{ flex: 1, backgroundColor: 'white' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#ddd', paddingVertical: 10, paddingHorizontal: 16, justifyContent: 'space-between', marginTop: 40 }}>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#23202A' }}>Filters</Text>
-            <TouchableOpacity onPress={handleCloseAdvanced} style={{ padding: 4 }}>
-              <Text style={{ fontSize: 28, color: '#23202A' }}>×</Text>
-            </TouchableOpacity>
-          </View>
-          <ScrollView style={{ flex: 1 }}>
-            <TouchableOpacity onPress={() => toggleSection('category')} style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 2, borderBottomColor: '#ddd' }}>
-              <Text style={{ fontSize: 28, marginRight: 8, color: '#23202A' }}>{openSections.category ? '-' : '+'}</Text>
-              <Text style={{ fontSize: 22, color: '#23202A' }}>Category</Text>
-            </TouchableOpacity>
-            {openSections.category && (
-              <View style={{ backgroundColor: '#f6f6f6', paddingVertical: 8, borderBottomWidth: 2, borderBottomColor: '#ddd' }}>
-                <TouchableOpacity style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#ccc' }}><Text style={{ fontSize: 18, color: '#888', textAlign: 'center' }}>Phone Insurance</Text></TouchableOpacity>
-                <TouchableOpacity style={{ padding: 12 }}><Text style={{ fontSize: 18, color: '#888', textAlign: 'center' }}>Car Insurance</Text></TouchableOpacity>
-              </View>
-            )}
-            <TouchableOpacity onPress={() => toggleSection('fees')} style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 2, borderBottomColor: '#ddd' }}>
-              <Text style={{ fontSize: 28, marginRight: 8, color: '#23202A' }}>{openSections.fees ? '-' : '+'}</Text>
-              <Text style={{ fontSize: 22, color: '#23202A' }}>Fees</Text>
-            </TouchableOpacity>
-            {openSections.fees && (
-              <View style={{ backgroundColor: '#f6f6f6', padding: 16, borderBottomWidth: 2, borderBottomColor: '#ddd' }}>
-                <Text style={{ fontWeight: 'bold', color: '#23202A', marginBottom: 4 }}>Minimum Fee:</Text>
-                <TextInput style={{ backgroundColor: '#eee', borderRadius: 6, padding: 8, marginBottom: 8 }} placeholder="(GBP)" placeholderTextColor="#aaa" />
-                <Text style={{ fontWeight: 'bold', color: '#23202A', marginBottom: 4 }}>Maximum Fee:</Text>
-                <TextInput style={{ backgroundColor: '#eee', borderRadius: 6, padding: 8, marginBottom: 8 }} placeholder="(GBP)" placeholderTextColor="#aaa" />
-                <Text style={{ fontWeight: 'bold', color: '#23202A', marginBottom: 4 }}>Frequence:</Text>
-                <View style={{ backgroundColor: '#eee', borderRadius: 6, marginBottom: 8 }}>
-                  <Text style={{ padding: 8, color: '#888' }}>One-off Payment</Text>
-                </View>
-              </View>
-            )}
-            <TouchableOpacity onPress={() => toggleSection('groupSize')} style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 2, borderBottomColor: '#ddd' }}>
-              <Text style={{ fontSize: 28, marginRight: 8, color: '#23202A' }}>{openSections.groupSize ? '-' : '+'}</Text>
-              <Text style={{ fontSize: 22, color: '#23202A' }}>Group Size</Text>
-            </TouchableOpacity>
-            {openSections.groupSize && (
-              <View style={{ backgroundColor: '#f6f6f6', padding: 16, borderBottomWidth: 2, borderBottomColor: '#ddd' }}>
-                <Text style={{ fontWeight: 'bold', color: '#23202A', marginBottom: 4 }}>Minimum Size:</Text>
-                <TextInput style={{ backgroundColor: '#eee', borderRadius: 6, padding: 8, marginBottom: 8 }} placeholder="Max" placeholderTextColor="#aaa" />
-                <Text style={{ fontWeight: 'bold', color: '#23202A', marginBottom: 4 }}>Maximum Size:</Text>
-                <TextInput style={{ backgroundColor: '#eee', borderRadius: 6, padding: 8, marginBottom: 8 }} placeholder="Min" placeholderTextColor="#aaa" />
-              </View>
-            )}
-            <TouchableOpacity onPress={() => toggleSection('voting')} style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 2, borderBottomColor: '#ddd' }}>
-              <Text style={{ fontSize: 28, marginRight: 8, color: '#23202A' }}>{openSections.voting ? '-' : '+'}</Text>
-              <Text style={{ fontSize: 22, color: '#23202A' }}>Voting System</Text>
-            </TouchableOpacity>
-            {openSections.voting && (
-              <View style={{ backgroundColor: '#f6f6f6', paddingVertical: 8, borderBottomWidth: 2, borderBottomColor: '#ddd' }}>
-                <Text style={{ fontSize: 18, color: '#888', textAlign: 'center', padding: 12 }}>Token-Weighted Voting</Text>
-              </View>
-            )}
-            <View style={{ alignItems: 'center', padding: 24 }}>
-              <Pressable style={{ borderWidth: 1, borderColor: '#23202A', borderRadius: 8, paddingVertical: 12, paddingHorizontal: 32 }} onPress={() => setShowAdvanced(false)}>
-                <Text style={{ color: '#23202A', fontSize: 18 }}>Filter</Text>
-              </Pressable>
-            </View>
-          </ScrollView>
         </View>
-      </Modal>
-      {/* Group List */}
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 16, paddingHorizontal: 12 }}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-      >
-        {filteredGroups.map((group, idx) => (
-          <View
-            key={idx}
-            className={`rounded-xl p-4 mb-4 shadow-sm px-3 ${group.isCharity ? '' : 'bg-white'}`}
-            style={group.isCharity ? { backgroundColor: '#F6F3FA', borderWidth: 2, borderColor: '#3B2364' } : {}}
-          >
-            <View className="flex-row items-center mb-2">
-              <View className="w-7 h-7 bg-gray-200 rounded-full items-center justify-center mr-2">
-                <Text className="text-lg">👥</Text>
-              </View>
-              <Text className="font-bold text-lg flex-1 text-[#23202A]">{group.name}</Text>
-              {group.isCharity && (
-                <View style={{ backgroundColor: '#F59E42', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, marginRight: 6 }}>
-                  <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Charity DAO</Text>
-                </View>
-              )}
-              <Text style={{ color: group.isCharity ? '#3B2364' : '#23202A', fontWeight: 'bold', fontSize: 18 }}>{group.price}</Text>
-              <Text style={{ color: group.isCharity ? '#3B2364' : '#6B7280', fontSize: 16 }}>{group.period}</Text>
-            </View>
-            <Text style={{ color: group.isCharity ? '#3B2364' : '#6B7280', marginBottom: 4 }}>{group.members} members</Text>
-            <Text style={{ color: group.isCharity ? '#3B2364' : '#6B7280', fontSize: 12, marginBottom: 4 }}>By <Text style={{ fontWeight: 'bold', color: group.isCharity ? '#3B2364' : '#23202A' }}>{group.creator}</Text></Text>
-            <Text style={{ color: group.isCharity ? '#3B2364' : '#6B7280', fontSize: 12, marginBottom: 8 }}>Created on {group.created}</Text>
-            <TouchableOpacity className="bg-[#140B33] rounded-lg py-3 mt-1" activeOpacity={0.85} onPress={() => setSelectedGroupIdx(idx)}>
-              <Text className="text-white text-center font-bold text-lg">Preview & Join</Text>
+
+        {/* Search and Private Join */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchContainer}>
+            <Icon name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: '#000000' }]} // Make text black
+              placeholder="Search DAOs..."
+              placeholderTextColor="#6B7280" // Keep placeholder gray
+              value={search}
+              onChangeText={setSearch}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+            />
+          </View>
+
+          <View style={styles.privateContainer}>
+            <Icon name="link" size={20} color="#6B7280" style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, { color: '#000000' }]} // Make text black
+              placeholder="Enter DAO address to join..."
+              placeholderTextColor="#6B7280" // Keep placeholder gray
+              value={privateAddress}
+              onChangeText={setPrivateAddress}
+            />
+            <TouchableOpacity
+              style={[styles.joinButton, !privateAddress && styles.joinButtonDisabled]}
+              onPress={handleJoinPrivate}
+              disabled={!privateAddress}
+            >
+              <Text style={styles.joinButtonText}>Join</Text>
             </TouchableOpacity>
           </View>
-        ))}
-      </ScrollView>
-      {/* Group Details Modal */}
-      <Modal
-        visible={selectedGroupIdx !== null}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setSelectedGroupIdx(null)}
-      >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.18)', justifyContent: 'center', alignItems: 'center' }}>
-          {/* Removed glassmorphism overlay for solid card */}
-          <View style={{
-            backgroundColor: '#FAF8FC',
-            borderRadius: 28,
-            paddingVertical: 28,
-            paddingHorizontal: 28,
-            width: '92%',
-            maxWidth: 420,
-            shadowColor: '#3B2364',
-            shadowOpacity: 0.10,
-            shadowRadius: 24,
-            elevation: 12,
-            borderWidth: 1,
-            borderColor: 'rgba(123,104,238,0.08)',
-          }}>
-            {selectedGroupIdx !== null && (
-              <>
-                <Text style={{ fontSize: 30, fontWeight: 'bold', color: '#23202A', marginBottom: 10, fontFamily: 'System', letterSpacing: 0.2 }}>{groups[selectedGroupIdx].name}</Text>
-                <Text style={{ color: '#6B7280', fontSize: 17, marginBottom: 18, fontFamily: 'System', lineHeight: 24 }}>{groupDescriptions[selectedGroupIdx]}</Text>
-                {groups[selectedGroupIdx].isCharity && groups[selectedGroupIdx].creatorDescription && (
-                  <Text style={{ color: '#F59E42', fontStyle: 'italic', marginBottom: 12 }}>{groups[selectedGroupIdx].creatorDescription}</Text>
-                )}
-                <Text style={{ fontSize: 16, fontWeight: '600', color: '#3B2364', marginBottom: 2, fontFamily: 'System' }}>Mandate</Text>
-                <Text style={{ color: '#23202A', fontSize: 15, marginBottom: 22, fontFamily: 'System', lineHeight: 22 }}>{groups[selectedGroupIdx].mandate}</Text>
-                <View style={{ height: 1.5, backgroundColor: '#ECE6F6', marginVertical: 14, borderRadius: 1 }} />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 22 }}>
-                  <Text style={{ color: '#23202A', fontSize: 17, fontWeight: 'bold', fontFamily: 'System' }}>{groups[selectedGroupIdx].price} {groups[selectedGroupIdx].period}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
-                    <Text style={{ color: '#23202A', fontSize: 17, fontWeight: 'bold', fontFamily: 'System' }}>{groups[selectedGroupIdx].members}</Text>
-                    <Text style={{ color: '#888', fontSize: 12, marginLeft: 4, marginBottom: 1 }}>contributors</Text>
-                  </View>
+        </View>
+
+        {/* Filters */}
+        <View style={styles.filterContainer}>
+          {FILTERS.map(f => (
+            <TouchableOpacity
+              key={f}
+              onPress={() => handleFilterChange(f)}
+              style={[styles.filterButton, filter === f && styles.filterButtonActive]}
+            >
+              <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
+                {f}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* Loading State */}
+        {loading && page === 1 && !refreshing && (
+          <ActivityIndicator size="large" color="#2563eb" style={styles.loader} />
+        )}
+
+        {/* Error State */}
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => fetchPublicDaos(true)}
+            >
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* DAO List */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#2563eb']}
+              tintColor="#2563eb"
+            />
+          }
+        >
+          {daos.map((dao, index) => (
+            <View key={`${dao.daoAddress}-${index}`} style={styles.daoCard}>
+              <View style={styles.daoHeader}>
+                <Text style={styles.daoName}>{dao.metadata.name}</Text>
+                <View style={styles.memberCountContainer}>
+                  <Icon name="people" size={16} color="#6B7280" />
+                  {dao.memberCount === undefined ? (
+                    <ActivityIndicator size="small" color="#6B7280" style={{ marginLeft: 4 }} />
+                  ) : (
+                    <Text style={styles.memberCount}>
+                      {dao.memberCount} members
+                    </Text>
+                  )}
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: '600', color: '#3B2364', marginBottom: 2, fontFamily: 'System' }}>Created by</Text>
-                <Text style={{ color: '#23202A', fontSize: 15, marginBottom: 26, fontFamily: 'System' }}><Text style={{ fontWeight: 'bold' }}>{groups[selectedGroupIdx].creator}</Text> - {groups[selectedGroupIdx].created}</Text>
-                {groups[selectedGroupIdx].name === 'LA Wildfire Fund' && (
-                  <View style={{ marginBottom: 12 }}>
-                    <Text style={{ color: '#3B2364', fontWeight: 'bold', marginBottom: 2 }}>Suggested Donation: <Text style={{ fontWeight: 'normal' }}>{wildfireDefaultAmount}</Text></Text>
-                    <Text style={{ color: '#3B2364', fontWeight: 'bold', marginBottom: 2 }}>Frequency: <Text style={{ fontWeight: 'normal' }}>{wildfireDefaultFrequency}</Text></Text>
-                    <Text style={{ color: '#3B2364', fontWeight: 'bold' }}>Already Raised: <Text style={{ fontWeight: 'normal' }}>{wildfireRaised}</Text></Text>
-                  </View>
-                )}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 18 }}>
-                  <TouchableOpacity
-                    style={{ flex: 1, backgroundColor: '#3B2364', borderRadius: 8, paddingVertical: 15, paddingHorizontal: 20, marginRight: 10, shadowColor: '#3B2364', shadowOpacity: 0.12, shadowRadius: 8, elevation: 2 }}
-                    onPress={() => {/* TODO: Request to join logic */}}
-                  >
-                    <Text style={{ color: 'white', fontSize: 18, textAlign: 'center', fontWeight: '500', letterSpacing: 0.2 }}>Request to Join</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={{ flex: 1, backgroundColor: '#ECE6F6', borderRadius: 8, paddingVertical: 15, paddingHorizontal: 18, marginLeft: 10 }}
-                    onPress={() => {/* TODO: Message owner logic */}}
-                  >
-                    <Text style={{ color: '#3B2364', fontSize: 18, textAlign: 'center', fontWeight: '500', letterSpacing: 0.2 }}>Enquire Further</Text>
-                  </TouchableOpacity>
+              </View>
+
+              <Text style={styles.daoDescription}>{dao.metadata.description}</Text>
+
+              <View style={styles.daoFooter}>
+                <View style={styles.creatorInfo}>
+                  <Icon name="person" size={16} color="#6B7280" />
+                  <Text style={styles.creatorText}>
+                    Created by{' '}
+                    {dao.creatorDetails?.firstName ? (
+                      <Text style={styles.creatorName}>
+                        {dao.creatorDetails.firstName} {dao.creatorDetails.lastName}
+                      </Text>
+                    ) : (
+                      <ActivityIndicator size="small" color="#6B7280" />
+                    )}
+                  </Text>
                 </View>
-                <TouchableOpacity style={{ alignSelf: 'center', marginTop: 22 }} onPress={() => setSelectedGroupIdx(null)}>
-                  <Text style={{ color: '#6B7280', fontSize: 17, fontWeight: '500', letterSpacing: 0.2 }}>Close</Text>
+
+                <TouchableOpacity
+                  style={styles.requestButton}
+                  onPress={() => handleJoinRequest(dao)}
+                >
+                  <Text style={styles.requestButtonText}>Request to Join</Text>
                 </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
+              </View>
+            </View>
+          ))}
+
+          {/* Load More */}
+          {hasMore && !loading && daos.length > 0 && (
+            <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMore}>
+              <Text style={styles.loadMoreText}>Load More</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Loading More Indicator */}
+          {loading && page > 1 && (
+            <ActivityIndicator size="small" color="#2563eb" style={styles.loadingMore} />
+          )}
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
-} 
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F5F7',
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  refreshButton: {
+    backgroundColor: '#2563eb',
+    padding: 8,
+    borderRadius: 8,
+  },
+  refreshButtonDisabled: {
+    opacity: 0.5,
+  },
+  refreshingIcon: {
+    transform: [{ rotate: '45deg' }],
+  },
+  searchSection: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 12,
+  },
+  privateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: 16,
+    color: '#000000', // Ensure text is black
+    paddingVertical: 8,
+  },
+  joinButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginLeft: 8,
+  },
+  joinButtonDisabled: {
+    opacity: 0.5,
+  },
+  joinButtonText: {
+    color: '#fff',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 8,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  filterButtonActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  filterText: {
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: '#fff',
+  },
+  scrollContent: {
+    gap: 12,
+  },
+  daoCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  daoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  daoName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  memberCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  memberCount: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  daoDescription: {
+    fontSize: 14,
+    color: '#4B5563',
+    marginBottom: 12,
+  },
+  daoFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  creatorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  creatorText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  creatorName: {
+    color: '#111827',
+    fontWeight: '500',
+  },
+  creatorAddress: {
+    color: '#6B7280',
+    fontFamily: 'monospace',
+  },
+  requestButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  requestButtonText: {
+    color: '#fff',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  loadMoreButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  loadMoreText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  loadingMore: {
+    marginTop: 16,
+  },
+  loader: {
+    marginTop: 40,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  errorText: {
+    color: '#EF4444',
+    marginBottom: 12,
+  },
+  retryButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: '500',
+  },
+}); 
