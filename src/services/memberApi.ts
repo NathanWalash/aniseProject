@@ -47,4 +47,20 @@ export async function getJoinRequest(daoAddress: string, memberAddress: string) 
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to fetch join request');
   return data;
+}
+
+// Calls POST /api/daos/:daoAddress/join-requests/:memberAddress/approve to accept a join request
+export async function acceptJoinRequest(daoAddress: string, memberAddress: string, txHash: string) {
+  const headers = await getAuthHeaders();
+  const res = await fetch(
+    `${API_BASE_URL}/api/daos/${daoAddress}/join-requests/${memberAddress}/approve`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ txHash })
+    }
+  );
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to accept join request');
+  return data;
 } 

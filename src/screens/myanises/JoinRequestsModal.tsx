@@ -2,8 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getJoinRequests, getJoinRequest } from '../../services/memberApi';
+import { getJoinRequests, getJoinRequest, acceptJoinRequest } from '../../services/memberApi';
 import { API_BASE_URL } from '../../utils/api';
+import { ethers } from 'ethers';
+import { walletConnectService } from '../../../wallet/walletConnectInstance';
+import MemberModuleAbi from '../../services/abis/MemberModule.json';
 
 interface JoinRequest {
   memberAddress: string;
@@ -27,6 +30,7 @@ export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddres
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [processingRequest, setProcessingRequest] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -100,12 +104,50 @@ export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddres
     }
   };
 
-  const handleAccept = (request: JoinRequest) => {
-    Alert.alert(
-      'Not Implemented',
-      'Accept functionality coming soon!',
-      [{ text: 'OK' }]
-    );
+  const handleAccept = async (request: JoinRequest) => {
+    try {
+      setProcessingRequest(request.memberAddress);
+
+      // 1. Check if WalletConnect is connected
+      if (!walletConnectService.isConnected()) {
+        throw new Error('Please connect your wallet first');
+      }
+
+      // 2. Prepare the transaction
+      const tx = {
+        to: daoAddress,
+        data: new ethers.Interface(MemberModuleAbi.abi).encodeFunctionData('acceptRequest', [
+          request.memberAddress,
+          1 // Member role
+        ])
+      };
+
+      // 3. Send the transaction (this will trigger the MetaMask deeplink)
+      console.log('Accepting join request for:', request.memberAddress);
+      const txHash = await walletConnectService.sendTransaction(tx) as string;
+      console.log('Transaction sent:', txHash);
+
+      // 4. Update backend
+      await acceptJoinRequest(daoAddress, request.memberAddress, txHash);
+
+      // 5. Refresh the list
+      await fetchJoinRequests();
+
+      Alert.alert(
+        'Success',
+        'Join request accepted successfully',
+        [{ text: 'OK' }]
+      );
+    } catch (err: any) {
+      console.error('Error accepting join request:', err);
+      Alert.alert(
+        'Error',
+        err.message || 'Failed to accept join request',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setProcessingRequest(null);
+    }
   };
 
   const handleReject = (request: JoinRequest) => {
@@ -168,14 +210,22 @@ export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddres
 
                   <View style={styles.buttonContainer}>
                     <TouchableOpacity
-                      style={[styles.actionButton, styles.acceptButton]}
+                      style={[
+                        styles.actionButton,
+                        styles.acceptButton,
+                        processingRequest === request.memberAddress && styles.processingButton
+                      ]}
                       onPress={() => handleAccept(request)}
+                      disabled={processingRequest === request.memberAddress}
                     >
-                      <Text style={styles.actionButtonText}>Accept</Text>
+                      <Text style={styles.actionButtonText}>
+                        {processingRequest === request.memberAddress ? 'Processing...' : 'Accept'}
+                      </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.rejectButton]}
                       onPress={() => handleReject(request)}
+                      disabled={processingRequest === request.memberAddress}
                     >
                       <Text style={styles.actionButtonText}>Reject</Text>
                     </TouchableOpacity>
@@ -303,4 +353,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '500',
   },
+  processingButton: {
+    opacity: 0.7
+  }
 }); 
