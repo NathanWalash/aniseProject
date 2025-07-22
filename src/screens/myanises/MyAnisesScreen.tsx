@@ -102,6 +102,14 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
         role: dao.role || '',
         created: formatDate(dao.createdAt),
         description: dao.metadata?.description || '',
+        metadata: {
+          name: dao.metadata?.name || '',
+          description: dao.metadata?.description || '',
+          intendedAudience: dao.metadata?.intendedAudience || '',
+          mandate: dao.metadata?.mandate || '',
+          isPublic: dao.metadata?.isPublic || false,
+          templateId: dao.metadata?.templateId || ''
+        }
       }));
 
       setMyAnises(reset || page === 1 ? mapped : prev => [...prev, ...mapped]);

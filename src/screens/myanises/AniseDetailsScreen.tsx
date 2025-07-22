@@ -1,105 +1,255 @@
-import React, { useState } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import { Anise } from './types/myAnise';
+import Icon from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../utils/api';
 
 interface AniseDetailsProps {
   route: { params: { anise: Anise } };
   navigation: any;
 }
 
-const ActionButton: React.FC<{
+interface ActionButtonProps {
+  icon: string;
   label: string;
   onPress: () => void;
-  variant?: 'default' | 'admin';
-}> = ({ label, onPress, variant = 'default' }) => (
-  <TouchableOpacity 
-    style={[
-      styles.actionButton,
-      variant === 'admin' ? styles.adminButton : styles.defaultButton
-    ]}
-    onPress={onPress}
-  >
-    <Text style={[
-      styles.actionButtonText,
-      variant === 'admin' ? styles.adminButtonText : styles.defaultButtonText
-    ]}>
-      {label}
-    </Text>
+  badge?: string | number;
+}
+
+const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress, badge }) => (
+  <TouchableOpacity style={styles.actionButton} onPress={onPress}>
+    <View style={styles.iconContainer}>
+      <Icon name={icon} size={24} color="#2563eb" />
+      {badge && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{badge}</Text>
+        </View>
+      )}
+    </View>
+    <Text style={styles.actionLabel}>{label}</Text>
   </TouchableOpacity>
 );
 
+const InfoModal: React.FC<{
+  visible: boolean;
+  onClose: () => void;
+  anise: Anise;
+}> = ({ visible, onClose, anise }) => (
+  <Modal
+    visible={visible}
+    transparent
+    animationType="slide"
+    onRequestClose={onClose}
+  >
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>DAO Information</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Icon name="close" size={24} color="#64748b" />
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView style={styles.modalBody}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Template</Text>
+            <Text style={styles.infoValue}>{anise.metadata?.templateId || 'N/A'}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Intended Audience</Text>
+            <Text style={styles.infoValue}>{anise.metadata?.intendedAudience || 'N/A'}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Mandate</Text>
+            <Text style={styles.infoValue}>{anise.metadata?.mandate || 'N/A'}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Public</Text>
+            <Text style={styles.infoValue}>{anise.metadata?.isPublic ? 'Yes' : 'No'}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Created</Text>
+            <Text style={styles.infoValue}>{anise.created}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Contract Address</Text>
+            <Text style={styles.infoValue}>{anise.id}</Text>
+          </View>
+        </ScrollView>
+      </View>
+    </View>
+  </Modal>
+);
+
+const TreasuryCard: React.FC<{ daoAddress: string }> = ({ daoAddress }) => {
+  const [balance, setBalance] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const idToken = await AsyncStorage.getItem('idToken');
+        if (!idToken) throw new Error('Not authenticated');
+
+        const response = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/treasury`, {
+          headers: { 'Authorization': `Bearer ${idToken}` }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch balance');
+        
+        const data = await response.json();
+        setBalance(data.balance);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching treasury balance:', err);
+        setError('Failed to load balance');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBalance();
+  }, [daoAddress]);
+
+  return (
+    <View style={styles.treasuryCard}>
+      <View style={styles.treasuryHeader}>
+        <Icon name="wallet" size={24} color="#2563eb" />
+        <Text style={styles.treasuryTitle}>Treasury Balance</Text>
+      </View>
+      
+      {loading ? (
+        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 12 }} />
+      ) : error ? (
+        <Text style={styles.errorText}>{error}</Text>
+      ) : (
+        <Text style={styles.treasuryBalance}>{balance || '0'} MATIC</Text>
+      )}
+    </View>
+  );
+};
+
 const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) => {
   const { anise } = route.params;
-  // Temporary hardcoded role for testing - we'll integrate this with context later
-  const [userRole] = useState<'Admin' | 'Member'>('Admin');
+  const [showInfo, setShowInfo] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Use the values we already have from the MyAnises page
+  const memberCount = anise.members;
+  const userRole = anise.role;
   const isAdmin = userRole === 'Admin';
+  
+  // Temporary hardcoded values for testing
+  const pendingJoinRequests = 3;
+  const pendingProposals = 2;
+  const pendingClaims = 1;
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <Text style={styles.backButtonText}>← Back to My Anises</Text>
-        </TouchableOpacity>
+        <View style={styles.headerTop}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Icon name="arrow-back" size={24} color="#2563eb" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={() => setShowInfo(true)}
+            style={styles.infoButton}
+          >
+            <Icon name="information-circle" size={24} color="#2563eb" />
+          </TouchableOpacity>
+        </View>
         
         <Text style={styles.title}>{anise.name}</Text>
         <Text style={styles.subtitle}>{anise.description}</Text>
-        <Text style={styles.role}>Your Role: {userRole}</Text>
+        
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Icon name="people" size={20} color="#2563eb" />
+            <Text style={styles.statText}>{memberCount} Members</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Icon name="shield" size={20} color="#2563eb" />
+            <Text style={styles.statText}>{userRole}</Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Treasury Balance Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Treasury Balance</Text>
-          <Text style={styles.balanceText}>Loading...</Text>
-        </View>
+        {/* Treasury Card */}
+        <TreasuryCard daoAddress={anise.id} />
 
-        {/* Member Actions Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Member Actions</Text>
+        {/* Admin Controls - Only visible to admins */}
+        {isAdmin && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Admin Controls</Text>
+            <View style={styles.buttonGrid}>
+              <ActionButton 
+                icon="people" 
+                label="Join Requests" 
+                onPress={() => console.log('Join Requests')}
+                badge={pendingJoinRequests}
+              />
+              <ActionButton 
+                icon="shield" 
+                label="Manage Members" 
+                onPress={() => console.log('Manage Members')}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Main Toolbar */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Toolbar</Text>
           <View style={styles.buttonGrid}>
             <ActionButton 
-              label="Create Proposal" 
-              onPress={() => console.log('Create Proposal')}
+              icon="document-text" 
+              label="Proposals" 
+              onPress={() => console.log('Proposals')}
+              badge={pendingProposals}
             />
             <ActionButton 
+              icon="cash" 
+              label="Claims" 
+              onPress={() => console.log('Claims')}
+              badge={pendingClaims}
+            />
+            <ActionButton 
+              icon="list" 
+              label="Transactions" 
+              onPress={() => console.log('Transactions')}
+            />
+            <ActionButton 
+              icon="create" 
+              label="New Proposal" 
+              onPress={() => console.log('New Proposal')}
+            />
+            <ActionButton 
+              icon="add-circle" 
               label="Submit Claim" 
               onPress={() => console.log('Submit Claim')}
             />
             <ActionButton 
+              icon="people" 
               label="View Members" 
               onPress={() => console.log('View Members')}
             />
           </View>
         </View>
-
-        {/* Admin Controls - Only visible to admins */}
-        {isAdmin && (
-          <View style={[styles.card, styles.adminCard]}>
-            <Text style={[styles.cardTitle, styles.adminTitle]}>Admin Controls</Text>
-            <View style={styles.buttonGrid}>
-              <ActionButton 
-                label="Join Requests" 
-                onPress={() => console.log('Join Requests')}
-                variant="admin"
-              />
-              <ActionButton 
-                label="Manage Roles" 
-                onPress={() => console.log('Manage Roles')}
-                variant="admin"
-              />
-              <ActionButton 
-                label="Remove Members" 
-                onPress={() => console.log('Remove Members')}
-                variant="admin"
-              />
-            </View>
-          </View>
-        )}
       </ScrollView>
+
+      <InfoModal 
+        visible={showInfo} 
+        onClose={() => setShowInfo(false)} 
+        anise={anise}
+      />
     </SafeAreaView>
   );
 };
@@ -115,12 +265,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5'
   },
-  backButton: {
-    marginBottom: 16
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12
   },
-  backButtonText: {
-    fontSize: 16,
-    color: '#2563eb'
+  backButton: {
+    padding: 4
+  },
+  infoButton: {
+    padding: 4
   },
   title: {
     fontSize: 24,
@@ -131,18 +286,28 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#6B7280',
-    marginBottom: 8
+    marginBottom: 12
   },
-  role: {
-    fontSize: 16,
-    color: '#374151',
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  statText: {
+    fontSize: 14,
+    color: '#2563eb',
     fontWeight: '500'
   },
   content: {
     flex: 1,
     padding: 16
   },
-  card: {
+  section: {
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
@@ -156,53 +321,123 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2
   },
-  adminCard: {
-    backgroundColor: '#FDF2F8',
-    borderWidth: 1,
-    borderColor: '#FB7185'
-  },
-  cardTitle: {
+  sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
     color: '#111827'
   },
-  adminTitle: {
-    color: '#BE123C'
-  },
-  balanceText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#059669'
-  },
   buttonGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12
+    gap: 12,
+    justifyContent: 'space-between'
   },
   actionButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    minWidth: '45%',
-    alignItems: 'center'
+    width: '30%',
+    alignItems: 'center',
+    padding: 12
   },
-  defaultButton: {
-    backgroundColor: '#EEF2FF',
+  iconContainer: {
+    position: 'relative',
+    marginBottom: 8
   },
-  adminButton: {
-    backgroundColor: '#FDF2F8',
+  actionLabel: {
+    fontSize: 12,
+    color: '#374151',
+    textAlign: 'center'
   },
-  actionButtonText: {
+  badge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold'
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end'
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%'
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827'
+  },
+  modalBody: {
+    maxHeight: '90%'
+  },
+  infoRow: {
+    marginBottom: 16
+  },
+  infoLabel: {
     fontSize: 14,
-    fontWeight: '600'
+    color: '#6B7280',
+    marginBottom: 4
   },
-  defaultButtonText: {
-    color: '#2563eb'
+  infoValue: {
+    fontSize: 16,
+    color: '#111827'
   },
-  adminButtonText: {
-    color: '#BE123C'
-  }
+  treasuryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  treasuryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  treasuryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2563eb',
+  },
+  treasuryBalance: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#059669',
+    textAlign: 'center',
+  },
+  errorText: {
+    color: '#ef4444',
+    textAlign: 'center',
+    marginTop: 8,
+  },
 });
 
 export default AniseDetailsScreen; 
