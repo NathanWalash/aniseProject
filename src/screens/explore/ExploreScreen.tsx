@@ -9,10 +9,34 @@ import {
   ActivityIndicator,
   StyleSheet,
   RefreshControl,
+  Modal,
 } from 'react-native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
+
+// Add navigation type
+type RootStackParamList = {
+  AniseDetails: {
+    anise: {
+      id: string;
+      name: string;
+      description: string;
+      members: number;
+      role: string;
+      created: string;
+      metadata: {
+        name: string;
+        description: string;
+        intendedAudience: string;
+        mandate: string;
+        isPublic: boolean;
+        templateId: string;
+      };
+    };
+  };
+};
 
 interface PublicDAO {
   daoAddress: string;
@@ -32,11 +56,140 @@ interface PublicDAO {
     firstName: string;
     lastName: string;
   };
+  membershipStatus?: 'none' | 'member' | 'pending';
 }
 
 const FILTERS = ['All', 'Recent', 'Popular'];
 
+// Add DAO Details Modal Component
+const DaoDetailsModal = ({ visible, dao, onClose, onJoinRequest }: {
+  visible: boolean;
+  dao: PublicDAO | null;
+  onClose: () => void;
+  onJoinRequest: (dao: PublicDAO) => void;
+}) => {
+  if (!dao) return null;
+
+  const renderModalJoinButton = () => {
+    console.log('Rendering modal button for DAO:', dao.daoAddress, 'Status:', dao.membershipStatus);
+    
+    switch (dao.membershipStatus) {
+      case 'member':
+        return (
+          <TouchableOpacity
+            style={[styles.modalJoinButton, { opacity: 0.8 }]}
+            disabled={true}
+          >
+            <Text style={styles.modalJoinButtonText}>Already a Member</Text>
+          </TouchableOpacity>
+        );
+      case 'pending':
+        return (
+          <TouchableOpacity
+            style={[styles.modalJoinButton, { opacity: 0.6 }]}
+            disabled={true}
+          >
+            <Text style={styles.modalJoinButtonText}>Request Pending</Text>
+          </TouchableOpacity>
+        );
+      default:
+        return (
+          <TouchableOpacity
+            style={styles.modalJoinButton}
+            onPress={() => {
+              onJoinRequest(dao);
+              onClose();
+            }}
+          >
+            <Text style={styles.modalJoinButtonText}>Request to Join</Text>
+          </TouchableOpacity>
+        );
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{dao.metadata.name}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Icon name="close" size={24} color="#6B7280" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalBody}>
+            {/* Description */}
+            <View style={styles.modalSection}>
+              <Text style={styles.sectionTitle}>Description</Text>
+              <Text style={styles.sectionText}>{dao.metadata.description}</Text>
+            </View>
+
+            {/* Details */}
+            <View style={styles.modalSection}>
+              <Text style={styles.sectionTitle}>Details</Text>
+              
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Members</Text>
+                <Text style={styles.detailValue}>{dao.memberCount}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Template</Text>
+                <Text style={styles.detailValue}>{dao.metadata.templateId}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Created By</Text>
+                <Text style={styles.detailValue}>
+                  {dao.creatorDetails?.firstName 
+                    ? `${dao.creatorDetails.firstName} ${dao.creatorDetails.lastName}`
+                    : dao.creator.slice(0, 6) + '...' + dao.creator.slice(-4)}
+                </Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Created On</Text>
+                <Text style={styles.detailValue}>
+                  {dao.createdAt?._seconds 
+                    ? new Date(dao.createdAt._seconds * 1000).toLocaleDateString()
+                    : 'N/A'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Purpose */}
+            <View style={styles.modalSection}>
+              <Text style={styles.sectionTitle}>Purpose</Text>
+              
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Intended Audience</Text>
+                <Text style={styles.detailValue}>{dao.metadata.intendedAudience}</Text>
+              </View>
+
+              <View style={styles.detailRow}>
+                <Text style={styles.detailLabel}>Mandate</Text>
+                <Text style={styles.detailValue}>{dao.metadata.mandate}</Text>
+              </View>
+            </View>
+
+            {/* Join Button */}
+            {renderModalJoinButton()}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 export default function ExploreScreen() {
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [search, setSearch] = useState('');
   const [privateAddress, setPrivateAddress] = useState('');
   const [filter, setFilter] = useState('All');
@@ -46,6 +199,34 @@ export default function ExploreScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedDao, setSelectedDao] = useState<PublicDAO | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [userWalletAddress, setUserWalletAddress] = useState<string | null>(null);
+
+  // Add effect to get user data including wallet address
+  useEffect(() => {
+    const getUserData = async () => {
+      try {
+        const idToken = await AsyncStorage.getItem('idToken');
+        if (!idToken) return;
+
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${idToken}` }
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          console.log('User data:', userData);
+          if (userData.wallet?.address) {
+            setUserWalletAddress(userData.wallet.address);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to get user data:', err);
+      }
+    };
+    getUserData();
+  }, []);
 
   // Add effect to reset and fetch when filter changes
   useEffect(() => {
@@ -53,6 +234,56 @@ export default function ExploreScreen() {
     fetchPublicDaos(true); // true means reset
   }, [filter]);
 
+  // Update membership status check to use the correct wallet address
+  const checkMembershipStatus = async (daoAddress: string, idToken: string) => {
+    try {
+      if (!userWalletAddress) {
+        console.log('No wallet address available');
+        return 'none';
+      }
+
+      console.log(`Checking membership status for DAO: ${daoAddress} and wallet: ${userWalletAddress}`);
+      
+      // Check if user is already a member
+      const memberResponse = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/members/${userWalletAddress}`, {
+        headers: { 'Authorization': `Bearer ${idToken}` }
+      });
+      
+      console.log('Member check response:', memberResponse.status);
+      if (memberResponse.ok) {
+        const memberData = await memberResponse.json();
+        console.log('Member data:', memberData);
+        if (memberData.role) { // Check if they have a role assigned
+          return 'member';
+        }
+      }
+
+      // Check for pending requests
+      const requestsResponse = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/join-requests`, {
+        headers: { 'Authorization': `Bearer ${idToken}` }
+      });
+
+      console.log('Join requests response:', requestsResponse.status);
+      if (requestsResponse.ok) {
+        const requestsData = await requestsResponse.json();
+        console.log('Join requests data:', requestsData);
+        // Check if user has a pending request
+        const hasPendingRequest = requestsData.joinRequests?.some(
+          (request: any) => request.memberAddress?.toLowerCase() === userWalletAddress?.toLowerCase()
+        );
+        if (hasPendingRequest) {
+          return 'pending';
+        }
+      }
+
+      return 'none';
+    } catch (err) {
+      console.warn('Failed to check membership status:', err);
+      return 'none';
+    }
+  };
+
+  // Update fetchPublicDaos to include membership status
   const fetchPublicDaos = async (reset: boolean = false) => {
     try {
       console.log('Fetching public DAOs...', { filter, reset });
@@ -128,16 +359,21 @@ export default function ExploreScreen() {
             }
           }
 
+          // Add membership status check
+          const membershipStatus = await checkMembershipStatus(dao.daoAddress, idToken);
+
           return {
             ...dao,
             memberCount,
-            creatorDetails
+            creatorDetails,
+            membershipStatus
           };
         } catch (err) {
           console.warn('Failed to fetch details for DAO:', dao.daoAddress, err);
           return {
             ...dao,
-            memberCount: 1 // At least the creator is a member
+            memberCount: 1,
+            membershipStatus: 'none'
           };
         }
       }));
@@ -184,11 +420,67 @@ export default function ExploreScreen() {
     console.log('Requesting to join:', dao.daoAddress);
   };
 
+  const handleViewDao = (dao: PublicDAO) => {
+    navigation.navigate('AniseDetails', {
+      anise: {
+        id: dao.daoAddress,
+        name: dao.metadata.name,
+        description: dao.metadata.description,
+        members: dao.memberCount,
+        role: 'None', // Since we're viewing from Explore, user isn't a member yet
+        created: new Date(dao.createdAt).toLocaleDateString(),
+        metadata: {
+          name: dao.metadata.name,
+          description: dao.metadata.description,
+          intendedAudience: dao.metadata.intendedAudience,
+          mandate: dao.metadata.mandate,
+          isPublic: dao.metadata.isPublic,
+          templateId: dao.metadata.templateId
+        }
+      }
+    });
+  };
+
   // Update the filter handler to reset the page
   const handleFilterChange = (newFilter: string) => {
     if (newFilter === filter) return; // Don't do anything if filter hasn't changed
     setFilter(newFilter);
     // Page reset and fetch will happen in the useEffect
+  };
+
+  // Update the button rendering in the card
+  const renderJoinButton = (dao: PublicDAO) => {
+    console.log('Rendering button for DAO:', dao.daoAddress, 'Status:', dao.membershipStatus);
+    
+    switch (dao.membershipStatus) {
+      case 'member':
+        return (
+          <TouchableOpacity
+            style={[styles.requestButton, { opacity: 0.8 }]}
+            disabled={true}
+          >
+            <Text style={styles.requestButtonText}>Already a Member</Text>
+          </TouchableOpacity>
+        );
+      case 'pending':
+        return (
+          <TouchableOpacity
+            style={[styles.requestButton, { opacity: 0.6 }]}
+            disabled={true}
+          >
+            <Text style={styles.requestButtonText}>Request Pending</Text>
+          </TouchableOpacity>
+        );
+      default:
+        return (
+          <TouchableOpacity
+            style={styles.requestButton}
+            onPress={() => handleJoinRequest(dao)}
+          >
+            <Text style={styles.requestButtonText}>Request to Join</Text>
+          </TouchableOpacity>
+        );
+    }
   };
 
   return (
@@ -313,26 +605,47 @@ export default function ExploreScreen() {
               <Text style={styles.daoDescription}>{dao.metadata.description}</Text>
 
               <View style={styles.daoFooter}>
-                <View style={styles.creatorInfo}>
-                  <Icon name="person" size={16} color="#6B7280" />
-                  <Text style={styles.creatorText}>
-                    Created by{' '}
-                    {dao.creatorDetails?.firstName ? (
-                      <Text style={styles.creatorName}>
-                        {dao.creatorDetails.firstName} {dao.creatorDetails.lastName}
+                <View style={styles.creatorSection}>
+                  <View style={styles.metadataRow}>
+                    <View style={styles.creatorInfo}>
+                      <Icon name="person" size={16} color="#6B7280" />
+                      <Text style={styles.creatorText}>
+                        Created by{' '}
+                        {dao.creatorDetails?.firstName ? (
+                          <Text style={styles.creatorName}>
+                            {dao.creatorDetails.firstName} {dao.creatorDetails.lastName}
+                          </Text>
+                        ) : (
+                          <ActivityIndicator size="small" color="#6B7280" />
+                        )}
                       </Text>
-                    ) : (
-                      <ActivityIndicator size="small" color="#6B7280" />
-                    )}
-                  </Text>
+                    </View>
+                    <View style={styles.separator} />
+                    <View style={styles.dateInfo}>
+                      <Icon name="calendar" size={16} color="#6B7280" />
+                      <Text style={styles.dateText}>
+                        {dao.createdAt?._seconds 
+                          ? new Date(dao.createdAt._seconds * 1000).toLocaleDateString()
+                          : 'N/A'}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
 
-                <TouchableOpacity
-                  style={styles.requestButton}
-                  onPress={() => handleJoinRequest(dao)}
-                >
-                  <Text style={styles.requestButtonText}>Request to Join</Text>
-                </TouchableOpacity>
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={styles.infoButton}
+                    onPress={() => {
+                      setSelectedDao(dao);
+                      setModalVisible(true);
+                    }}
+                  >
+                    <Icon name="information-circle-outline" size={18} color="#2563eb" />
+                    <Text style={styles.infoButtonText}>More Info</Text>
+                  </TouchableOpacity>
+
+                  {renderJoinButton(dao)}
+                </View>
               </View>
             </View>
           ))}
@@ -349,6 +662,17 @@ export default function ExploreScreen() {
             <ActivityIndicator size="small" color="#2563eb" style={styles.loadingMore} />
           )}
         </ScrollView>
+
+        {/* DAO Details Modal */}
+        <DaoDetailsModal
+          visible={modalVisible}
+          dao={selectedDao}
+          onClose={() => {
+            setModalVisible(false);
+            setSelectedDao(null);
+          }}
+          onJoinRequest={handleJoinRequest}
+        />
       </View>
     </SafeAreaView>
   );
@@ -477,6 +801,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#111827',
+    flex: 1,
+    marginRight: 12,
   },
   memberCountContainer: {
     flexDirection: 'row',
@@ -490,17 +816,28 @@ const styles = StyleSheet.create({
   daoDescription: {
     fontSize: 14,
     color: '#4B5563',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   daoFooter: {
+    gap: 12,
+  },
+  creatorSection: {
+    gap: 4,
+  },
+  metadataRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 12,
   },
   creatorInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+  },
+  separator: {
+    width: 1,
+    height: '80%',
+    backgroundColor: '#E5E7EB',
   },
   creatorText: {
     fontSize: 14,
@@ -510,15 +847,47 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontWeight: '500',
   },
-  creatorAddress: {
+  dateInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  dateText: {
+    fontSize: 14,
     color: '#6B7280',
-    fontFamily: 'monospace',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 12,
+  },
+  infoButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  infoButtonText: {
+    color: '#2563eb',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 4,
   },
   requestButton: {
+    flex: 1,
     backgroundColor: '#2563eb',
     borderRadius: 8,
-    paddingHorizontal: 16,
     paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
   },
   requestButtonText: {
     color: '#fff',
@@ -560,5 +929,118 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontWeight: '500',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end', // Makes modal slide up from bottom
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 20,
+    maxHeight: '80%', // Takes up to 80% of screen height
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    flex: 1,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    paddingHorizontal: 20,
+  },
+  modalSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  sectionText: {
+    fontSize: 16,
+    color: '#4B5563',
+    lineHeight: 24,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  detailLabel: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
+  },
+  modalJoinButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  modalJoinButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  memberButton: {
+    backgroundColor: '#2563eb',
+    opacity: 0.8,
+  },
+  memberButtonText: {
+    color: '#fff',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  pendingButton: {
+    backgroundColor: '#2563eb',
+    opacity: 0.6,
+  },
+  pendingButtonText: {
+    color: '#fff',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  modalMemberButton: {
+    backgroundColor: '#2563eb',
+    opacity: 0.8,
+  },
+  modalMemberButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  modalPendingButton: {
+    backgroundColor: '#2563eb',
+    opacity: 0.6,
+  },
+  modalPendingButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
   },
 }); 
