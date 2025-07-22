@@ -10,11 +10,17 @@ import {
   StyleSheet,
   RefreshControl,
   Modal,
+  Alert,
+  Linking,
 } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
+import { Interface } from 'ethers';
+import { walletConnectService } from '../../../wallet/walletConnectInstance';
+import MemberModuleAbiJson from '../../services/abis/MemberModule.json';
+const MemberModuleAbi = MemberModuleAbiJson.abi || MemberModuleAbiJson;
 
 // Add navigation type
 type RootStackParamList = {
@@ -38,6 +44,7 @@ type RootStackParamList = {
   };
 };
 
+// Update the PublicDAO interface
 interface PublicDAO {
   daoAddress: string;
   metadata: {
@@ -50,13 +57,27 @@ interface PublicDAO {
   };
   memberCount: number;
   creator: string;
-  creatorUid?: string; // Add creatorUid field
+  creatorUid?: string;
   createdAt: any;
   creatorDetails?: {
     firstName: string;
     lastName: string;
   };
   membershipStatus?: 'none' | 'member' | 'pending';
+  modules?: {
+    MemberModule?: {
+      address: string;
+    };
+    ProposalVotingModule?: {
+      address: string;
+    };
+    ClaimVotingModule?: {
+      address: string;
+    };
+    TreasuryModule?: {
+      address: string;
+    };
+  };
 }
 
 const FILTERS = ['All', 'Recent', 'Popular'];
@@ -244,7 +265,7 @@ export default function ExploreScreen() {
 
       console.log(`Checking membership status for DAO: ${daoAddress} and wallet: ${userWalletAddress}`);
       
-      // Check if user is already a member
+      // First check if user is already a member by checking their role
       const memberResponse = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/members/${userWalletAddress}`, {
         headers: { 'Authorization': `Bearer ${idToken}` }
       });
@@ -253,12 +274,12 @@ export default function ExploreScreen() {
       if (memberResponse.ok) {
         const memberData = await memberResponse.json();
         console.log('Member data:', memberData);
-        if (memberData.role) { // Check if they have a role assigned
+        if (memberData.role && memberData.role !== 'None') {
           return 'member';
         }
       }
 
-      // Check for pending requests
+      // If not a member, check for pending requests
       const requestsResponse = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/join-requests`, {
         headers: { 'Authorization': `Bearer ${idToken}` }
       });
@@ -267,10 +288,12 @@ export default function ExploreScreen() {
       if (requestsResponse.ok) {
         const requestsData = await requestsResponse.json();
         console.log('Join requests data:', requestsData);
+        
         // Check if user has a pending request
         const hasPendingRequest = requestsData.joinRequests?.some(
           (request: any) => request.memberAddress?.toLowerCase() === userWalletAddress?.toLowerCase()
         );
+        
         if (hasPendingRequest) {
           return 'pending';
         }
@@ -289,6 +312,19 @@ export default function ExploreScreen() {
       console.log('Fetching public DAOs...', { filter, reset });
       const idToken = await AsyncStorage.getItem('idToken');
       if (!idToken) throw new Error('Not authenticated');
+
+      // Get user's wallet address if we don't have it
+      if (!userWalletAddress) {
+        const userResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${idToken}` }
+        });
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          if (userData.wallet?.address) {
+            setUserWalletAddress(userData.wallet.address);
+          }
+        }
+      }
 
       const params = new URLSearchParams({
         page: String(reset ? 1 : page),
@@ -334,32 +370,38 @@ export default function ExploreScreen() {
             memberCount = membersData.members.length;
           }
 
-          // Get creator details from members collection
-          const creatorMemberDoc = await fetch(`${API_BASE_URL}/api/daos/${dao.daoAddress}/members/${dao.creator}`, {
-            headers: { 'Authorization': `Bearer ${idToken}` }
-          });
-
+          // Get creator details from auth directly
           let creatorDetails;
-          if (creatorMemberDoc.ok) {
-            const memberData = await creatorMemberDoc.json();
-            console.log('Creator member data:', memberData);
-            if (memberData.uid) {
-              // Use the /auth/me endpoint with the creator's uid
-              const userDoc = await fetch(`${API_BASE_URL}/api/auth/me?uid=${memberData.uid}`, {
-                headers: { 'Authorization': `Bearer ${idToken}` }
-              });
-              if (userDoc.ok) {
-                const userData = await userDoc.json();
-                console.log('Creator user data:', userData);
-                creatorDetails = {
-                  firstName: userData.firstName || '',
-                  lastName: userData.lastName || ''
-                };
+          try {
+            const creatorResponse = await fetch(`${API_BASE_URL}/api/daos/${dao.daoAddress}/members/${dao.creator}`, {
+              headers: { 'Authorization': `Bearer ${idToken}` }
+            });
+            
+            if (creatorResponse.ok) {
+              const creatorData = await creatorResponse.json();
+              console.log('Creator member data:', creatorData);
+              
+              if (creatorData.uid) {
+                const userResponse = await fetch(`${API_BASE_URL}/api/auth/users/${creatorData.uid}`, {
+                  headers: { 'Authorization': `Bearer ${idToken}` }
+                });
+                
+                if (userResponse.ok) {
+                  const userData = await userResponse.json();
+                  console.log('Creator user data:', userData);
+                  creatorDetails = {
+                    firstName: userData.firstName,
+                    lastName: userData.lastName
+                  };
+                }
               }
             }
+          } catch (err) {
+            console.warn('Failed to fetch creator details:', err);
+            // Don't set creatorDetails - will fallback to showing address
           }
 
-          // Add membership status check
+          // Check membership status
           const membershipStatus = await checkMembershipStatus(dao.daoAddress, idToken);
 
           return {
@@ -373,7 +415,7 @@ export default function ExploreScreen() {
           return {
             ...dao,
             memberCount: 1,
-            membershipStatus: 'none'
+            membershipStatus: 'none' as const
           };
         }
       }));
@@ -415,9 +457,117 @@ export default function ExploreScreen() {
     console.log('Joining private DAO:', privateAddress);
   };
 
-  const handleJoinRequest = (dao: PublicDAO) => {
-    // TODO: Implement join request logic
-    console.log('Requesting to join:', dao.daoAddress);
+  // Update the handleJoinRequest function
+  const handleJoinRequest = async (dao: PublicDAO) => {
+    try {
+      if (!userWalletAddress) {
+        Alert.alert('Error', 'Please connect your wallet first');
+        return;
+      }
+
+      // Create contract interface for MemberModule
+      const iface = new Interface(MemberModuleAbi);
+      const data = iface.encodeFunctionData('requestToJoin', []);
+      console.log('Encoded function data:', data);
+
+      // Prepare transaction
+      const tx = {
+        from: userWalletAddress,
+        to: dao.daoAddress,
+        data,
+        chainId: 80002, // Polygon Amoy
+      };
+
+      console.log('Preparing transaction:', tx);
+
+      // Open MetaMask
+      try {
+        await Linking.openURL('metamask://');
+      } catch (e) {
+        console.log('Could not open MetaMask:', e);
+      }
+
+      // Send transaction
+      console.log('Sending transaction...');
+      const txHash = await walletConnectService.sendTransaction(tx);
+      console.log('Transaction sent! Hash:', txHash);
+
+      // Show Polyscan link
+      Alert.alert(
+        'Transaction Sent',
+        'Your join request has been submitted.',
+        [
+          {
+            text: 'View on Polyscan',
+            onPress: () => {
+              Linking.openURL(`https://mumbai.polygonscan.com/tx/${txHash}`);
+            },
+          },
+          { text: 'OK', style: 'default' },
+        ]
+      );
+
+      // Update backend
+      try {
+        const idToken = await AsyncStorage.getItem('idToken');
+        if (!idToken) throw new Error('Not authenticated');
+
+        console.log('Updating backend with join request...');
+        const response = await fetch(`${API_BASE_URL}/api/daos/${dao.daoAddress}/join-requests`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${idToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            txHash,
+            memberAddress: userWalletAddress
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Backend update failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText
+          });
+          throw new Error('Failed to update backend');
+        }
+
+        console.log('Backend updated successfully');
+
+        // Update the DAO's membership status to pending
+        const updatedDaos = daos.map(d => {
+          if (d.daoAddress === dao.daoAddress) {
+            return { ...d, membershipStatus: 'pending' as const };
+          }
+          return d;
+        });
+        setDaos(updatedDaos);
+
+        // Refresh the DAO list to get updated status
+        setTimeout(() => {
+          fetchPublicDaos(true);
+        }, 2000); // Wait 2 seconds then refresh
+
+      } catch (err) {
+        console.error('Failed to update backend:', err);
+        Alert.alert(
+          'Warning',
+          'Transaction sent but failed to update backend. Status may not reflect correctly until refresh.',
+          [{ text: 'OK' }]
+        );
+      }
+
+    } catch (err: any) {
+      console.error('Join request error:', err);
+      if (err?.message?.includes('Internal JSON-RPC error') || err?.code === 5000) {
+        Alert.alert('Transaction Error', 'An error occurred while sending the transaction. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to submit join request. Please try again.');
+      }
+    }
   };
 
   const handleViewDao = (dao: PublicDAO) => {
@@ -482,6 +632,24 @@ export default function ExploreScreen() {
         );
     }
   };
+
+  // Add auto-refresh on focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('Screen focused, refreshing DAOs...');
+      fetchPublicDaos(true);
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  // Update the fetchPublicDaos function to check membership status on initial load
+  useEffect(() => {
+    if (userWalletAddress) {
+      console.log('User wallet address available, fetching DAOs...');
+      fetchPublicDaos(true);
+    }
+  }, [userWalletAddress]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -611,10 +779,16 @@ export default function ExploreScreen() {
                       <Icon name="person" size={16} color="#6B7280" />
                       <Text style={styles.creatorText}>
                         Created by{' '}
-                        {dao.creatorDetails?.firstName ? (
-                          <Text style={styles.creatorName}>
-                            {dao.creatorDetails.firstName} {dao.creatorDetails.lastName}
-                          </Text>
+                        {dao.creator ? (
+                          dao.creatorDetails?.firstName ? (
+                            <Text style={styles.creatorName}>
+                              {dao.creatorDetails.firstName} {dao.creatorDetails.lastName}
+                            </Text>
+                          ) : (
+                            <Text style={styles.creatorAddress}>
+                              {dao.creator.slice(0, 6)}...{dao.creator.slice(-4)}
+                            </Text>
+                          )
                         ) : (
                           <ActivityIndicator size="small" color="#6B7280" />
                         )}
@@ -846,6 +1020,11 @@ const styles = StyleSheet.create({
   creatorName: {
     color: '#111827',
     fontWeight: '500',
+  },
+  creatorAddress: {
+    color: '#6B7280',
+    fontFamily: 'monospace',
+    fontSize: 14,
   },
   dateInfo: {
     flexDirection: 'row',
