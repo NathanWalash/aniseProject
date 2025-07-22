@@ -36,27 +36,44 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [totalDaos, setTotalDaos] = useState(0);
 
   // Get wallet address from user profile
-  const walletAddress = user?.walletAddress || user?.wallet?.address;
+  const walletAddress = user?.wallet?.address;
   const uid = user?.uid;
 
   // Fetch DAOs with proper error handling and state management
   const fetchMyAnises = useCallback(async (options: { reset?: boolean; refresh?: boolean } = {}) => {
     const { reset = false, refresh = false } = options;
-    if (!uid) return;
+    
+    // Validate required data
+    if (!uid || !walletAddress) {
+      console.log('Missing user data:', { uid, walletAddress });
+      setError('Please connect your wallet first');
+      return;
+    }
 
+    // Don't fetch if already loading (unless it's a refresh)
+    if (!refresh && loading) {
+      console.log('Already loading, skipping fetch');
+      return;
+    }
+
+    // Set loading state
+    if (!refresh) setLoading(true);
+
+    // Reset state if needed
     if (reset) {
       setPage(1);
       setMyAnises([]);
     }
 
-    if (!refresh && loading) return;
-
     try {
+      console.log('Fetching DAOs for:', { uid, walletAddress });
+      
       const idToken = await AsyncStorage.getItem('idToken');
-      if (!idToken) throw new Error('Not authenticated');
+      if (!idToken) {
+        throw new Error('Not authenticated');
+      }
 
       const params = new URLSearchParams({
         page: String(reset ? 1 : page),
@@ -65,6 +82,8 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
       });
 
       const url = `${API_BASE_URL}/api/users/${uid}/daos?${params}`;
+      console.log('Fetching from URL:', url);
+      
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${idToken}` },
       });
@@ -74,8 +93,8 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
       }
 
       const data = await res.json();
+      console.log('Received data:', data);
       
-      // Map API response to Anise type
       const mapped: Anise[] = data.daos.map((dao: any) => ({
         id: dao.daoAddress || dao.id,
         name: dao.metadata?.name || 'Unnamed DAO',
@@ -87,18 +106,19 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
 
       setMyAnises(reset || page === 1 ? mapped : prev => [...prev, ...mapped]);
       setHasMore(data.hasMore);
-      setTotalDaos(data.total);
       setError(null);
     } catch (err: any) {
+      console.error('Error fetching DAOs:', err);
       setError(err.message || 'Failed to load your Nises');
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [uid, page, search]);
+  }, [uid, walletAddress, page, search, loading]);
 
   // Initial load
   useEffect(() => {
+    console.log('Initial load effect, user data:', { uid, walletAddress });
     if (walletAddress && uid) {
       fetchMyAnises({ reset: true });
     }
@@ -106,16 +126,18 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
 
   // Handle search with debounce
   useEffect(() => {
+    if (!search) return; // Don't trigger on empty search
+    
     const timer = setTimeout(() => {
-      if (search !== '') {
-        fetchMyAnises({ reset: true });
-      }
+      fetchMyAnises({ reset: true });
     }, 500);
+    
     return () => clearTimeout(timer);
   }, [search]);
 
   // Handle refresh
   const onRefresh = useCallback(() => {
+    console.log('Refreshing...');
     setRefreshing(true);
     fetchMyAnises({ reset: true, refresh: true });
   }, [fetchMyAnises]);
@@ -133,12 +155,43 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
     navigation.navigate('AniseDetails', { anise });
   };
 
+  // Debug output
+  console.log('Current state:', { 
+    hasWallet: !!walletAddress, 
+    loading, 
+    refreshing, 
+    anisesCount: myAnises.length,
+    error 
+  });
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
       <View style={{ padding: 20, flex: 1 }}>
-        <Text style={{ fontSize: 28, fontWeight: 'bold', marginBottom: 16, color: '#23202A' }}>
-          My Anises {totalDaos > 0 && `(${totalDaos})`}
-        </Text>
+        {/* Header with Refresh Button */}
+        <View style={{ 
+          flexDirection: 'row', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: 16 
+        }}>
+          <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#23202A' }}>
+            My Anises
+          </Text>
+          <TouchableOpacity 
+            onPress={onRefresh}
+            disabled={loading || refreshing}
+            style={{ 
+              backgroundColor: '#2563eb',
+              padding: 8,
+              borderRadius: 8,
+              opacity: (loading || refreshing) ? 0.7 : 1
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '500' }}>
+              {loading || refreshing ? 'Refreshing...' : 'Refresh'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Search Bar */}
         {walletAddress && (
@@ -206,6 +259,8 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
+              colors={['#2563eb']}
+              tintColor="#2563eb"
             />
           }
         >

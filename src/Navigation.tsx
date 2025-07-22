@@ -1,66 +1,115 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import MyAnisesScreen from './screens/myanises/MyAnisesScreen';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+// Import screens
+import LandingScreen from './screens/landing/LandingScreen';
+import LoginScreen from './screens/auth/LoginScreen';
+import SignupScreen from './screens/auth/SignupScreen';
+import ResetPasswordScreen from './screens/auth/ResetPasswordScreen';
 import ExploreScreen from './screens/explore/ExploreScreen';
 import CreateScreen from './screens/create/CreateScreen';
+import MyAnisesScreen from './screens/myanises/MyAnisesScreen';
+import AniseDetailsScreen from './screens/myanises/AniseDetailsScreen';
 import NotificationsScreen from './screens/notifications/NotificationsScreen';
 import ProfileScreen from './screens/profile/ProfileScreen';
+import DebugScreen from './screens/debug/DebugScreen';
+
+// Import icons
 import MyAnisesIcon from '../assets/icons/anise.svg';
 import ExploreIcon from '../assets/icons/explore_icon.svg';
 import CreateIcon from '../assets/icons/create_icon.svg';
 import NotificationsIcon from '../assets/icons/notifications_icon.svg';
 import ProfileIcon from '../assets/icons/profile_icon.svg';
-import { SvgProps } from 'react-native-svg';
-import PaymentsLinkFlow from './screens/payments/PaymentsLinkFlow';
-import { createStackNavigator } from '@react-navigation/stack';
-import DebugScreen from './screens/debug/DebugScreen';
 
 const Tab = createBottomTabNavigator();
-const ProfileStack = createStackNavigator();
+const MyAnisesStack = createNativeStackNavigator();
 
-function ProfileStackScreen({ user, onLogout }: { user: any, onLogout: () => void }) {
+interface NavigationProps {
+  user: any;
+  onLogout: () => void;
+}
+
+interface ScreenProps {
+  navigation: any;
+  route: any;
+}
+
+function MyAnisesStackScreen({ user }: { user: any }) {
   return (
-    <ProfileStack.Navigator>
-      <ProfileStack.Screen name="ProfileMain" options={{ headerShown: false }}>
-        {() => <ProfileScreen user={user} onLogout={onLogout} />}
-      </ProfileStack.Screen>
-      <ProfileStack.Screen name="PaymentsLinkFlow" component={PaymentsLinkFlow} options={{ title: 'Link GoCardless' }} />
-      <ProfileStack.Screen name="DebugScreen" component={DebugScreen} options={{ title: 'Debug' }} />
-    </ProfileStack.Navigator>
+    <MyAnisesStack.Navigator>
+      <MyAnisesStack.Screen 
+        name="MyAnisesList" 
+        options={{ headerShown: false }}
+      >
+        {(props: ScreenProps) => <MyAnisesScreen {...props} user={user} />}
+      </MyAnisesStack.Screen>
+      <MyAnisesStack.Screen 
+        name="AniseDetails" 
+        options={{ headerShown: false }}
+      >
+        {(props: ScreenProps) => <AniseDetailsScreen {...props} />}
+      </MyAnisesStack.Screen>
+    </MyAnisesStack.Navigator>
   );
 }
 
-// The user prop will be passed from App.tsx
-export default function Navigation({ user, onLogout }: { user: any, onLogout: () => void }) {
+function TabNavigator({ user, onLogout }: NavigationProps) {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        tabBarStyle: { backgroundColor: '#fff' },
+        tabBarActiveTintColor: '#2563eb',
+        tabBarInactiveTintColor: '#6B7280',
+      }}
+    >
+      <Tab.Screen
+        name="Explore"
+        component={ExploreScreen}
+        options={{
+          tabBarIcon: ({ color }) => <ExploreIcon color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Create"
+        options={{
+          tabBarIcon: ({ color }) => <CreateIcon color={color} />,
+        }}
+      >
+        {() => <CreateScreen user={user} />}
+      </Tab.Screen>
+      <Tab.Screen
+        name="MyAnises"
+        options={{
+          tabBarIcon: ({ color }) => <MyAnisesIcon color={color} />,
+        }}
+      >
+        {() => <MyAnisesStackScreen user={user} />}
+      </Tab.Screen>
+      <Tab.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{
+          tabBarIcon: ({ color }) => <NotificationsIcon color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        options={{
+          tabBarIcon: ({ color }) => <ProfileIcon color={color} />,
+        }}
+      >
+        {() => <ProfileScreen onLogout={onLogout} />}
+      </Tab.Screen>
+    </Tab.Navigator>
+  );
+}
+
+export default function Navigation({ user, onLogout }: NavigationProps) {
   return (
     <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ color, size }) => {
-            let IconComponent: React.FC<SvgProps> = MyAnisesIcon;
-            if (route.name === 'Explore') IconComponent = ExploreIcon;
-            else if (route.name === 'Create') IconComponent = CreateIcon;
-            else if (route.name === 'Notifications') IconComponent = NotificationsIcon;
-            else if (route.name === 'Profile') IconComponent = ProfileIcon;
-            return <IconComponent width={size} height={size} stroke={color} />;
-          },
-          tabBarActiveTintColor: '#7B68EE',
-          tabBarInactiveTintColor: 'gray',
-        })}
-      >
-        <Tab.Screen name="Explore" component={ExploreScreen} />
-        <Tab.Screen name="Create">
-          {() => <CreateScreen user={user} />}
-        </Tab.Screen>
-        <Tab.Screen name="MyAnises">
-          {() => <MyAnisesScreen user={user} />}
-        </Tab.Screen>
-        <Tab.Screen name="Notifications" component={NotificationsScreen} />
-        <Tab.Screen name="Profile">
-          {() => <ProfileStackScreen user={user} onLogout={onLogout} />}
-        </Tab.Screen>
-      </Tab.Navigator>
+      <TabNavigator user={user} onLogout={onLogout} />
     </NavigationContainer>
   );
 } 
