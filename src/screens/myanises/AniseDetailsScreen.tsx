@@ -4,6 +4,7 @@ import { Anise } from './types/myAnise';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
+import { JoinRequestsModal } from './JoinRequestsModal';
 
 interface AniseDetailsProps {
   route: { params: { anise: Anise } };
@@ -134,6 +135,7 @@ const TreasuryCard: React.FC<{ daoAddress: string }> = ({ daoAddress }) => {
 const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) => {
   const { anise } = route.params;
   const [showInfo, setShowInfo] = useState(false);
+  const [showJoinRequests, setShowJoinRequests] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -193,7 +195,7 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
               <ActionButton 
                 icon="people" 
                 label="Join Requests" 
-                onPress={() => console.log('Join Requests')}
+                onPress={() => setShowJoinRequests(true)}
                 badge={pendingJoinRequests}
               />
               <ActionButton 
@@ -245,10 +247,18 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
         </View>
       </ScrollView>
 
+      {/* Info Modal */}
       <InfoModal 
         visible={showInfo} 
         onClose={() => setShowInfo(false)} 
         anise={anise}
+      />
+
+      {/* Join Requests Modal */}
+      <JoinRequestsModal
+        visible={showJoinRequests}
+        onClose={() => setShowJoinRequests(false)}
+        daoAddress={anise.id}
       />
     </SafeAreaView>
   );

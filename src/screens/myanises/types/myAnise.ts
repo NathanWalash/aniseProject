@@ -6,9 +6,8 @@ export interface Anise {
   members: string | number;
   role: string;
   created: string;
-  templateId?: string;
-  intendedAudience?: string;
-  mandate?: string;
+  status?: 'Active' | 'Inactive';
+  isCharity?: boolean;
   metadata?: {
     name: string;
     description: string;

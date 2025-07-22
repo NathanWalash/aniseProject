@@ -306,6 +306,56 @@ export default function ExploreScreen() {
     }
   };
 
+  const fetchUserDetails = async (memberAddress: string, daoAddress: string, idToken: string): Promise<{ firstName: string; lastName: string } | null> => {
+    try {
+      console.log(`Fetching user details for member ${memberAddress} in DAO ${daoAddress}`);
+      
+      // First get the member document to get the uid
+      const memberUrl = `${API_BASE_URL}/api/daos/${daoAddress}/members/${memberAddress}`;
+      console.log('Fetching member data from:', memberUrl);
+      
+      const memberResponse = await fetch(memberUrl, {
+        headers: { 'Authorization': `Bearer ${idToken}` }
+      });
+      
+      console.log('Member response status:', memberResponse.status);
+      if (memberResponse.ok) {
+        const memberData = await memberResponse.json();
+        console.log('Member data:', memberData);
+        
+        if (memberData.uid) {
+          // Then get user details using the uid
+          const userUrl = `${API_BASE_URL}/api/auth/users/${memberData.uid}`;
+          console.log('Fetching user data from:', userUrl);
+          
+          const userResponse = await fetch(userUrl, {
+            headers: { 'Authorization': `Bearer ${idToken}` }
+          });
+          
+          console.log('User response status:', userResponse.status);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            console.log('User data:', userData);
+            return {
+              firstName: userData.firstName,
+              lastName: userData.lastName
+            };
+          } else {
+            console.log('Failed to fetch user data:', await userResponse.text());
+          }
+        } else {
+          console.log('No uid found in member data');
+        }
+      } else {
+        console.log('Failed to fetch member data:', await memberResponse.text());
+      }
+      return null;
+    } catch (err) {
+      console.error('Failed to fetch user details:', err);
+      return null;
+    }
+  };
+
   // Update fetchPublicDaos to include membership status
   const fetchPublicDaos = async (reset: boolean = false) => {
     try {
@@ -370,36 +420,8 @@ export default function ExploreScreen() {
             memberCount = membersData.members.length;
           }
 
-          // Get creator details from auth directly
-          let creatorDetails;
-          try {
-            const creatorResponse = await fetch(`${API_BASE_URL}/api/daos/${dao.daoAddress}/members/${dao.creator}`, {
-              headers: { 'Authorization': `Bearer ${idToken}` }
-            });
-            
-            if (creatorResponse.ok) {
-              const creatorData = await creatorResponse.json();
-              console.log('Creator member data:', creatorData);
-              
-              if (creatorData.uid) {
-                const userResponse = await fetch(`${API_BASE_URL}/api/auth/users/${creatorData.uid}`, {
-                  headers: { 'Authorization': `Bearer ${idToken}` }
-                });
-                
-                if (userResponse.ok) {
-                  const userData = await userResponse.json();
-                  console.log('Creator user data:', userData);
-                  creatorDetails = {
-                    firstName: userData.firstName,
-                    lastName: userData.lastName
-                  };
-                }
-              }
-            }
-          } catch (err) {
-            console.warn('Failed to fetch creator details:', err);
-            // Don't set creatorDetails - will fallback to showing address
-          }
+          // Get creator details
+          const creatorDetails = await fetchUserDetails(dao.creator, dao.daoAddress, idToken);
 
           // Check membership status
           const membershipStatus = await checkMembershipStatus(dao.daoAddress, idToken);
@@ -407,7 +429,7 @@ export default function ExploreScreen() {
           return {
             ...dao,
             memberCount,
-            creatorDetails,
+            creatorDetails: creatorDetails || undefined,
             membershipStatus
           };
         } catch (err) {
