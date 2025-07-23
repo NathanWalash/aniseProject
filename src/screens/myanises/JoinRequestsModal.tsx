@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getJoinRequests, getJoinRequest, acceptJoinRequest } from '../../services/memberApi';
+import { getJoinRequests, getJoinRequest, acceptJoinRequest, rejectJoinRequest } from '../../services/memberApi';
 import { API_BASE_URL } from '../../utils/api';
 import { ethers } from 'ethers';
 import { walletConnectService } from '../../../wallet/walletConnectInstance';
@@ -150,12 +150,49 @@ export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddres
     }
   };
 
-  const handleReject = (request: JoinRequest) => {
-    Alert.alert(
-      'Not Implemented',
-      'Reject functionality coming soon!',
-      [{ text: 'OK' }]
-    );
+  const handleReject = async (request: JoinRequest) => {
+    try {
+      setProcessingRequest(request.memberAddress);
+
+      // 1. Check if WalletConnect is connected
+      if (!walletConnectService.isConnected()) {
+        throw new Error('Please connect your wallet first');
+      }
+
+      // 2. Prepare the transaction
+      const tx = {
+        to: daoAddress,
+        data: new ethers.Interface(MemberModuleAbi.abi).encodeFunctionData('rejectRequest', [
+          request.memberAddress
+        ])
+      };
+
+      // 3. Send the transaction (this will trigger the MetaMask deeplink)
+      console.log('Rejecting join request for:', request.memberAddress);
+      const txHash = await walletConnectService.sendTransaction(tx) as string;
+      console.log('Transaction sent:', txHash);
+
+      // 4. Update backend
+      await rejectJoinRequest(daoAddress, request.memberAddress, txHash);
+
+      // 5. Refresh the list
+      await fetchJoinRequests();
+
+      Alert.alert(
+        'Success',
+        'Join request rejected successfully',
+        [{ text: 'OK' }]
+      );
+    } catch (err: any) {
+      console.error('Error rejecting join request:', err);
+      Alert.alert(
+        'Error',
+        err.message || 'Failed to reject join request',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setProcessingRequest(null);
+    }
   };
 
   return (
