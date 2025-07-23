@@ -109,7 +109,8 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
           mandate: dao.metadata?.mandate || '',
           isPublic: dao.metadata?.isPublic || false,
           templateId: dao.metadata?.templateId || ''
-        }
+        },
+        modules: dao.modules || {} // Add modules from the API response
       }));
 
       setMyAnises(reset || page === 1 ? mapped : prev => [...prev, ...mapped]);

@@ -16,4 +16,23 @@ export interface Anise {
     isPublic: boolean;
     templateId: string;
   };
+  modules?: {
+    TreasuryModule?: {
+      address: string;
+      config?: Record<string, any>;
+    };
+    MemberModule?: {
+      config?: Record<string, any>;
+    };
+    ProposalVotingModule?: {
+      config?: {
+        approvalThreshold: number;
+      };
+    };
+    ClaimVotingModule?: {
+      config?: {
+        approvalThreshold: number;
+      };
+    };
+  };
 }

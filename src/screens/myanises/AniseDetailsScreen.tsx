@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, TouchableOpacity, StyleSheet, Modal, ActivityIndicator, Pressable } from 'react-native';
 import { Anise } from './types/myAnise';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
 import { JoinRequestsModal } from './JoinRequestsModal';
+import { getTreasuryBalance } from '../../services/blockchainService';
 
 interface AniseDetailsProps {
   route: { params: { anise: Anise } };
@@ -83,52 +84,136 @@ const InfoModal: React.FC<{
   </Modal>
 );
 
-const TreasuryCard: React.FC<{ daoAddress: string }> = ({ daoAddress }) => {
+const TreasuryInfoModal: React.FC<{
+  visible: boolean;
+  onClose: () => void;
+  treasuryAddress: string;
+}> = ({ visible, onClose, treasuryAddress }) => (
+  <Modal
+    visible={visible}
+    transparent
+    animationType="slide"
+    onRequestClose={onClose}
+  >
+    <View style={styles.modalOverlay}>
+      <View style={styles.modalContent}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Treasury Information</Text>
+          <TouchableOpacity onPress={onClose}>
+            <Icon name="close" size={24} color="#64748b" />
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView style={styles.modalBody}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Token Type</Text>
+            <Text style={styles.infoValue}>ERC20 (aniseGBP)</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Treasury Module</Text>
+            <Text style={[styles.infoValue, styles.addressText]}>{treasuryAddress}</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>About</Text>
+            <Text style={styles.infoValue}>
+              The treasury holds the DAO's tokens which can be used for paying out approved claims. The balance shown is in British Pounds (GBP).
+            </Text>
+          </View>
+        </ScrollView>
+      </View>
+    </View>
+  </Modal>
+);
+
+const TreasuryCard: React.FC<{ anise: Anise }> = ({ anise }) => {
   const [balance, setBalance] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
+
+  // Debug log to see the structure
+  console.log('Anise object:', JSON.stringify(anise, null, 2));
+  console.log('Modules:', JSON.stringify(anise.modules, null, 2));
+  
+  // Get treasury address - try both possible paths
+  const treasuryAddress = anise.modules?.TreasuryModule?.address || 
+                         (anise as any).modules?.treasury?.address ||
+                         (anise as any).modules?.treasuryModule?.address;
+  
+  console.log('Found treasury address:', treasuryAddress);
+
+  const fetchBalance = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching balance for DAO:', anise.id);
+      const balanceWei = await getTreasuryBalance(anise.id);
+      console.log('Received balance:', balanceWei.toString());
+      // Convert from wei to pounds (18 decimals)
+      const balancePounds = Number(balanceWei) / 1e18;
+      setBalance(balancePounds.toLocaleString('en-GB', {
+        style: 'currency',
+        currency: 'GBP',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }));
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching treasury balance:', err);
+      setError('Failed to load balance');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchBalance = async () => {
-      try {
-        const idToken = await AsyncStorage.getItem('idToken');
-        if (!idToken) throw new Error('Not authenticated');
-
-        const response = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/treasury`, {
-          headers: { 'Authorization': `Bearer ${idToken}` }
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch balance');
-        
-        const data = await response.json();
-        setBalance(data.balance);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching treasury balance:', err);
-        setError('Failed to load balance');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchBalance();
-  }, [daoAddress]);
+  }, [anise.id]);
+
+  if (!treasuryAddress) {
+    console.error('Treasury module not found in:', anise);
+    return (
+      <View style={styles.treasuryCard}>
+        <View style={styles.treasuryHeader}>
+          <Icon name="wallet" size={24} color="#2563eb" />
+          <Text style={styles.treasuryTitle}>Treasury Balance</Text>
+        </View>
+        <Text style={styles.errorText}>Treasury module configuration not found</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.treasuryCard}>
-      <View style={styles.treasuryHeader}>
-        <Icon name="wallet" size={24} color="#2563eb" />
-        <Text style={styles.treasuryTitle}>Treasury Balance</Text>
+    <>
+      <View style={styles.treasuryCard}>
+        <View style={styles.treasuryHeader}>
+          <Icon name="wallet" size={24} color="#2563eb" />
+          <Text style={styles.treasuryTitle}>Treasury Balance</Text>
+          <TouchableOpacity onPress={() => setShowInfo(true)} style={styles.infoButton}>
+            <Icon name="information-circle" size={20} color="#2563eb" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={fetchBalance} style={styles.refreshButton}>
+            <Icon name="refresh" size={20} color="#2563eb" />
+          </TouchableOpacity>
+        </View>
+        
+        {loading ? (
+          <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 12 }} />
+        ) : error ? (
+          <Text style={styles.errorText}>{error}</Text>
+        ) : (
+          <View style={styles.balanceContainer}>
+            <Text style={styles.treasuryBalance}>{balance || '£0.00'}</Text>
+            <Text style={styles.balanceLabel}>Available Balance</Text>
+          </View>
+        )}
       </View>
-      
-      {loading ? (
-        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 12 }} />
-      ) : error ? (
-        <Text style={styles.errorText}>{error}</Text>
-      ) : (
-        <Text style={styles.treasuryBalance}>{balance || '0'} MATIC</Text>
-      )}
-    </View>
+
+      <TreasuryInfoModal 
+        visible={showInfo}
+        onClose={() => setShowInfo(false)}
+        treasuryAddress={treasuryAddress}
+      />
+    </>
   );
 };
 
@@ -185,7 +270,7 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
 
       <ScrollView style={styles.content}>
         {/* Treasury Card */}
-        <TreasuryCard daoAddress={anise.id} />
+        <TreasuryCard anise={anise} />
 
         {/* Admin Controls - Only visible to admins */}
         {isAdmin && (
@@ -285,7 +370,8 @@ const styles = StyleSheet.create({
     padding: 4
   },
   infoButton: {
-    padding: 4
+    marginLeft: 'auto',
+    padding: 8,
   },
   title: {
     fontSize: 24,
@@ -430,23 +516,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 16,
   },
   treasuryTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#2563eb',
   },
+  balanceContainer: {
+    alignItems: 'center',
+    backgroundColor: '#f0f9ff', // Light blue background
+    borderRadius: 8,
+    padding: 16,
+    marginTop: 8,
+  },
   treasuryBalance: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#059669',
+    color: '#0f766e', // Teal color for money
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  balanceLabel: {
+    fontSize: 14,
+    color: '#64748b',
     textAlign: 'center',
   },
   errorText: {
     color: '#ef4444',
     textAlign: 'center',
     marginTop: 8,
+  },
+  refreshButton: {
+    padding: 8,
+  },
+  addressText: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+    color: '#2563eb',
+    padding: 8,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 4,
   },
 });
 
