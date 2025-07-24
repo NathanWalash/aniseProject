@@ -177,7 +177,29 @@ export const voteOnProposal = async (daoAddress: string, proposalId: string, app
     const txHash = await walletConnectService.sendTransaction(tx) as string;
     console.log('Transaction sent:', txHash);
 
-    // 4. Show success alert with Polyscan link
+    // 4. Get JWT token
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) throw new Error('Not authenticated');
+
+    // 5. Update backend
+    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/proposals/${proposalId}/vote`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ 
+        txHash,
+        voteType: approve ? 'approve' : 'reject'
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to record vote');
+    }
+
+    // 6. Show success alert with Polyscan link
     Alert.alert(
       'Transaction Sent',
       `Your vote was submitted!\n\nTx Hash: ${txHash}`,
@@ -187,7 +209,7 @@ export const voteOnProposal = async (daoAddress: string, proposalId: string, app
       ]
     );
 
-    return { txHash };
+    return await res.json();
   } catch (err: any) {
     console.error('Error voting on proposal:', err);
     throw err;
