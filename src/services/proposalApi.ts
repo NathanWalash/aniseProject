@@ -3,6 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ethers } from 'ethers';
 import { walletConnectService } from '../../wallet/walletConnectInstance';
 import ProposalVotingModuleAbi from './abis/ProposalVotingModule.json';
+import { Alert, Linking } from 'react-native';
+
+const POLYSCAN_PREFIX = 'https://amoy.polygonscan.com';
 
 // Create a new proposal
 export const createProposal = async (daoAddress: string, data: { title: string; description: string }) => {
@@ -26,25 +29,17 @@ export const createProposal = async (daoAddress: string, data: { title: string; 
     const txHash = await walletConnectService.sendTransaction(tx) as string;
     console.log('Transaction sent:', txHash);
 
-    // 4. Update backend
-    const idToken = await AsyncStorage.getItem('idToken');
-    if (!idToken) throw new Error('Not authenticated');
+    // 4. Show success alert with Polyscan link
+    Alert.alert(
+      'Transaction Sent',
+      `Your proposal was submitted!\n\nTx Hash: ${txHash}`,
+      [
+        { text: 'View on Polyscan', onPress: () => Linking.openURL(`${POLYSCAN_PREFIX}/tx/${txHash}`) },
+        { text: 'OK' },
+      ]
+    );
 
-    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/proposals`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ ...data, txHash }),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.error || 'Failed to create proposal');
-    }
-
-    return await res.json();
+    return { txHash };
   } catch (err: any) {
     console.error('Error creating proposal:', err);
     throw err;
@@ -121,25 +116,17 @@ export const voteOnProposal = async (daoAddress: string, proposalId: string, app
     const txHash = await walletConnectService.sendTransaction(tx) as string;
     console.log('Transaction sent:', txHash);
 
-    // 4. Update backend
-    const idToken = await AsyncStorage.getItem('idToken');
-    if (!idToken) throw new Error('Not authenticated');
+    // 4. Show success alert with Polyscan link
+    Alert.alert(
+      'Transaction Sent',
+      `Your vote was submitted!\n\nTx Hash: ${txHash}`,
+      [
+        { text: 'View on Polyscan', onPress: () => Linking.openURL(`${POLYSCAN_PREFIX}/tx/${txHash}`) },
+        { text: 'OK' },
+      ]
+    );
 
-    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/proposals/${proposalId}/vote`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`,
-      },
-      body: JSON.stringify({ approve, txHash }),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.error || 'Failed to vote on proposal');
-    }
-
-    return await res.json();
+    return { txHash };
   } catch (err: any) {
     console.error('Error voting on proposal:', err);
     throw err;
