@@ -8,7 +8,7 @@ import { Alert, Linking } from 'react-native';
 const POLYSCAN_PREFIX = 'https://amoy.polygonscan.com';
 
 export interface Proposal {
-  proposalId: number;
+  proposalId: string;
   title: string;
   description: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -17,6 +17,8 @@ export interface Proposal {
     _nanoseconds: number;
   };
   proposer: string;
+  approvals: number;
+  rejections: number;
   votes: Record<string, boolean>;
   voters: Record<string, {
     vote: boolean;

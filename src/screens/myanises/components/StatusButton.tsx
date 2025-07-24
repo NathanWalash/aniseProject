@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
-type ButtonType = 'vote_now' | 'already_voted' | 'approved' | 'rejected';
+type ButtonType = 'vote_now' | 'already_voted' | 'approved' | 'rejected' | 'creator';
 
 interface StatusButtonProps {
   type: ButtonType;
@@ -19,6 +19,8 @@ export const StatusButton: React.FC<StatusButtonProps> = ({ type, onPress }) => 
         return styles.approved;
       case 'rejected':
         return styles.rejected;
+      case 'creator':
+        return styles.creator;
     }
   };
 
@@ -32,6 +34,8 @@ export const StatusButton: React.FC<StatusButtonProps> = ({ type, onPress }) => 
         return 'Approved ✓';
       case 'rejected':
         return 'Rejected ✗';
+      case 'creator':
+        return 'Your Submission';
     }
   };
 
@@ -43,7 +47,7 @@ export const StatusButton: React.FC<StatusButtonProps> = ({ type, onPress }) => 
     >
       <Text style={[
         styles.text,
-        type === 'already_voted' && styles.grayText
+        (type === 'already_voted' || type === 'creator') && styles.grayText
       ]}>
         {getButtonText()}
       </Text>
@@ -79,5 +83,8 @@ const styles = StyleSheet.create({
   },
   rejected: {
     backgroundColor: '#EF4444', // Red
+  },
+  creator: {
+    backgroundColor: '#F3F4F6', // Light gray
   },
 }); 

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { Proposal, listProposals } from '../../../services/proposalApi';
 import { ProposalCard } from '../components/ProposalCard';
 import { VotingModal } from '../components/VotingModal';
+import { walletConnectService } from '../../../../wallet/walletConnectInstance';
 
 type FilterType = 'pending' | 'approved' | 'rejected';
 
@@ -15,9 +17,6 @@ interface ProposalsListScreenProps {
     };
   };
 }
-
-import { Proposal, listProposals } from '../../../services/proposalApi';
-import { walletConnectService } from '../../../../wallet/walletConnectInstance';
 
 export const ProposalsListScreen: React.FC<ProposalsListScreenProps> = ({ navigation, route }) => {
   const [filter, setFilter] = useState<FilterType>('pending');
@@ -115,8 +114,9 @@ export const ProposalsListScreen: React.FC<ProposalsListScreenProps> = ({ naviga
               description={item.description}
               status={item.status}
               hasVoted={hasVoted(item)}
+              isCreator={item.proposer?.toLowerCase() === walletAddress}
               onPress={() => {
-                if (item.status === 'pending' && !hasVoted(item)) {
+                if (item.status === 'pending' && !hasVoted(item) && item.proposer?.toLowerCase() !== walletAddress) {
                   setSelectedProposal(item);
                 }
               }}
@@ -131,20 +131,32 @@ export const ProposalsListScreen: React.FC<ProposalsListScreenProps> = ({ naviga
         />
       )}
 
-      {/* Voting Modal */}
       <VotingModal
-        visible={selectedProposal !== null}
-        onClose={() => setSelectedProposal(null)}
-        onVote={(approve) => {
-          console.log(`Voted ${approve ? 'approve' : 'reject'} on proposal:`, selectedProposal?.proposalId);
-          // For now, just close the modal
+        isVisible={!!selectedProposal}
+        onClose={() => {
           setSelectedProposal(null);
+          // Refresh proposals after voting
+          const fetchProposals = async () => {
+            try {
+              const { proposals: fetchedProposals } = await listProposals(daoAddress);
+              setProposals(fetchedProposals);
+            } catch (err: any) {
+              console.error('Error refreshing proposals:', err);
+            }
+          };
+          fetchProposals();
         }}
-        title={selectedProposal?.title || ''}
-        description={selectedProposal?.description || ''}
-        approvals={Object.values(selectedProposal?.votes || {}).filter(v => v).length}
+        daoAddress={daoAddress}
+        type="proposal"
+        item={{
+          id: selectedProposal?.proposalId,
+          title: selectedProposal?.title || '',
+          description: selectedProposal?.description || '',
+          approvals: selectedProposal?.approvals || 0,
+          rejections: selectedProposal?.rejections || 0,
+          proposer: selectedProposal?.proposer
+        }}
         threshold={proposalThreshold}
-        rejections={Object.values(selectedProposal?.votes || {}).filter(v => !v).length}
       />
     </SafeAreaView>
   );

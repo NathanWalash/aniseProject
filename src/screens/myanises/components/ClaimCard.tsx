@@ -8,6 +8,7 @@ interface ClaimCardProps {
   description: string;
   status: 'pending' | 'approved' | 'rejected';
   hasVoted: boolean;
+  isCreator: boolean;
   onPress: () => void;
 }
 
@@ -17,10 +18,12 @@ export const ClaimCard: React.FC<ClaimCardProps> = ({
   description,
   status,
   hasVoted,
+  isCreator,
   onPress,
 }) => {
   const getButtonType = () => {
     if (status === 'pending') {
+      if (isCreator) return 'creator';
       return hasVoted ? 'already_voted' : 'vote_now';
     }
     return status;

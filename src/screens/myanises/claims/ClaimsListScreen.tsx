@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { Claim, listClaims } from '../../../services/claimApi';
 import { ClaimCard } from '../components/ClaimCard';
 import { VotingModal } from '../components/VotingModal';
+import { walletConnectService } from '../../../../wallet/walletConnectInstance';
 
 type FilterType = 'pending' | 'approved' | 'rejected';
 
@@ -15,9 +17,6 @@ interface ClaimsListScreenProps {
     };
   };
 }
-
-import { Claim, listClaims } from '../../../services/claimApi';
-import { walletConnectService } from '../../../../wallet/walletConnectInstance';
 
 export const ClaimsListScreen: React.FC<ClaimsListScreenProps> = ({ navigation, route }) => {
   const [filter, setFilter] = useState<FilterType>('pending');
@@ -116,8 +115,9 @@ export const ClaimsListScreen: React.FC<ClaimsListScreenProps> = ({ navigation, 
               description={item.description}
               status={item.status}
               hasVoted={hasVoted(item)}
+              isCreator={item.claimant?.toLowerCase() === walletAddress}
               onPress={() => {
-                if (item.status === 'pending' && !hasVoted(item)) {
+                if (item.status === 'pending' && !hasVoted(item) && item.claimant?.toLowerCase() !== walletAddress) {
                   setSelectedClaim(item);
                 }
               }}
@@ -132,21 +132,33 @@ export const ClaimsListScreen: React.FC<ClaimsListScreenProps> = ({ navigation, 
         />
       )}
 
-      {/* Voting Modal */}
       <VotingModal
-        visible={selectedClaim !== null}
-        onClose={() => setSelectedClaim(null)}
-        onVote={(approve) => {
-          console.log(`Voted ${approve ? 'approve' : 'reject'} on claim:`, selectedClaim?.claimId);
-          // For now, just close the modal
+        isVisible={!!selectedClaim}
+        onClose={() => {
           setSelectedClaim(null);
+          // Refresh claims after voting
+          const fetchClaims = async () => {
+            try {
+              const { claims: fetchedClaims } = await listClaims(daoAddress);
+              setClaims(fetchedClaims);
+            } catch (err: any) {
+              console.error('Error refreshing claims:', err);
+            }
+          };
+          fetchClaims();
         }}
-        title={selectedClaim?.title || ''}
-        description={selectedClaim?.description || ''}
-        amount={selectedClaim?.amount}
-        approvals={Object.values(selectedClaim?.votes || {}).filter(v => v).length}
+        daoAddress={daoAddress}
+        type="claim"
+        item={{
+          id: selectedClaim?.claimId,
+          title: selectedClaim?.title || '',
+          description: selectedClaim?.description || '',
+          amount: selectedClaim?.amount,
+          approvals: selectedClaim?.approvals || 0,
+          rejections: selectedClaim?.rejections || 0,
+          claimant: selectedClaim?.claimant
+        }}
         threshold={claimThreshold}
-        rejections={Object.values(selectedClaim?.votes || {}).filter(v => !v).length}
       />
     </SafeAreaView>
   );

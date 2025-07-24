@@ -7,7 +7,7 @@ import { Alert, Linking } from 'react-native';
 const POLYSCAN_PREFIX = 'https://amoy.polygonscan.com';
 
 export interface Claim {
-  claimId: number;
+  claimId: string;
   title: string;
   description: string;
   amount: string;
@@ -17,6 +17,8 @@ export interface Claim {
     _nanoseconds: number;
   };
   claimant: string;
+  approvals: number;
+  rejections: number;
   votes: Record<string, boolean>;
   voters: Record<string, {
     vote: boolean;
