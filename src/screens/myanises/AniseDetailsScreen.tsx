@@ -303,13 +303,19 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
             <ActionButton 
               icon="document-text" 
               label="Proposals" 
-              onPress={() => console.log('View Proposals')}
+              onPress={() => navigation.navigate('ProposalsList', { 
+                daoAddress: anise.id,
+                proposalThreshold: anise.modules?.ProposalVotingModule?.config?.approvalThreshold || 51
+              })}
               badge={pendingProposals}
             />
             <ActionButton 
               icon="cash" 
               label="Claims" 
-              onPress={() => console.log('View Claims')}
+              onPress={() => navigation.navigate('ClaimsList', { 
+                daoAddress: anise.id,
+                claimThreshold: anise.modules?.ClaimVotingModule?.config?.approvalThreshold || 51
+              })}
               badge={pendingClaims}
             />
             <ActionButton 

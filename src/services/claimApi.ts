@@ -1,11 +1,51 @@
-import { API_BASE_URL } from '../utils/api';
+import { API_BASE_URL, getAuthHeaders } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ethers } from 'ethers';
 import { walletConnectService } from '../../wallet/walletConnectInstance';
 import ClaimVotingModuleAbi from './abis/ClaimVotingModule.json';
 import { Alert, Linking } from 'react-native';
-
 const POLYSCAN_PREFIX = 'https://amoy.polygonscan.com';
+
+export interface Claim {
+  claimId: number;
+  title: string;
+  description: string;
+  amount: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+  claimant: string;
+  votes: Record<string, boolean>;
+  voters: Record<string, {
+    vote: boolean;
+    timestamp: {
+      _seconds: number;
+      _nanoseconds: number;
+    };
+    txHash: string;
+  }>;
+  txHash: string;
+  createdBy: string;
+}
+
+export const listClaims = async (daoAddress: string): Promise<{ claims: Claim[] }> => {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/claims`, { headers });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to fetch claims');
+    }
+
+    return await res.json();
+  } catch (err: any) {
+    console.error('Error fetching claims:', err);
+    throw err;
+  }
+};
 
 // Create a new claim
 export const createClaim = async (daoAddress: string, data: { title: string; amount: string; description: string }) => {

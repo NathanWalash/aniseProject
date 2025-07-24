@@ -12,6 +12,8 @@ import ExploreScreen from './screens/explore/ExploreScreen';
 import CreateScreen from './screens/create/CreateScreen';
 import MyAnisesScreen from './screens/myanises/MyAnisesScreen';
 import AniseDetailsScreen from './screens/myanises/AniseDetailsScreen';
+import { ClaimsListScreen } from './screens/myanises/claims/ClaimsListScreen';
+import { ProposalsListScreen } from './screens/myanises/proposals/ProposalsListScreen';
 import NotificationsScreen from './screens/notifications/NotificationsScreen';
 import ProfileScreen from './screens/profile/ProfileScreen';
 import DebugScreen from './screens/debug/DebugScreen';
@@ -50,6 +52,18 @@ function MyAnisesStackScreen({ user }: { user: any }) {
         options={{ headerShown: false }}
       >
         {(props: ScreenProps) => <AniseDetailsScreen {...props} />}
+      </MyAnisesStack.Screen>
+      <MyAnisesStack.Screen 
+        name="ClaimsList" 
+        options={{ headerShown: false }}
+      >
+        {(props: ScreenProps) => <ClaimsListScreen {...props} />}
+      </MyAnisesStack.Screen>
+      <MyAnisesStack.Screen 
+        name="ProposalsList" 
+        options={{ headerShown: false }}
+      >
+        {(props: ScreenProps) => <ProposalsListScreen {...props} />}
       </MyAnisesStack.Screen>
     </MyAnisesStack.Navigator>
   );

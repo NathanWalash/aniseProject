@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../utils/api';
+import { API_BASE_URL, getAuthHeaders } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ethers } from 'ethers';
 import { walletConnectService } from '../../wallet/walletConnectInstance';
@@ -6,6 +6,46 @@ import ProposalVotingModuleAbi from './abis/ProposalVotingModule.json';
 import { Alert, Linking } from 'react-native';
 
 const POLYSCAN_PREFIX = 'https://amoy.polygonscan.com';
+
+export interface Proposal {
+  proposalId: number;
+  title: string;
+  description: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: {
+    _seconds: number;
+    _nanoseconds: number;
+  };
+  proposer: string;
+  votes: Record<string, boolean>;
+  voters: Record<string, {
+    vote: boolean;
+    timestamp: {
+      _seconds: number;
+      _nanoseconds: number;
+    };
+    txHash: string;
+  }>;
+  txHash: string;
+  createdBy: string;
+}
+
+export const listProposals = async (daoAddress: string): Promise<{ proposals: Proposal[] }> => {
+  try {
+    const headers = await getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/proposals`, { headers });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to fetch proposals');
+    }
+
+    return await res.json();
+  } catch (err: any) {
+    console.error('Error fetching proposals:', err);
+    throw err;
+  }
+};
 
 // Create a new proposal
 export const createProposal = async (daoAddress: string, data: { title: string; description: string }) => {
