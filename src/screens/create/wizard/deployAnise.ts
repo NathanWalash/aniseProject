@@ -73,12 +73,11 @@ export async function deployAnise(template: Template, config: Record<string, any
     const tokenAddress = getContractAddress('Token');
     const factoryAddress = getContractAddress('DaoFactory');
 
-    // Build modules object for backend, extracting relevant config for each module
+    // Build modules object for backend
     const modules: Record<string, any> = {};
     for (const m of moduleKeys) {
       const moduleConfig: Record<string, any> = {};
 
-      // Always set approvalThreshold for voting modules, using default if blank
       if (m === 'ProposalVotingModule' || m === 'ClaimVotingModule') {
         const configKey = getModuleParamKey(m, 'approvalThreshold');
         const paramSchema = modules[m]?.initParamsSchema?.[0];
@@ -86,7 +85,6 @@ export async function deployAnise(template: Template, config: Record<string, any
         const value = config[configKey] !== undefined ? config[configKey] : defaultValue;
         moduleConfig.approvalThreshold = value;
       }
-      // Add other module-specific config checks here as needed
 
       if (m === 'TreasuryModule') {
         modules[m] = {
@@ -110,7 +108,7 @@ export async function deployAnise(template: Template, config: Record<string, any
       tokenAddress
     ]);
 
-    // Log everything about to be sent to WalletConnect
+    // Log transaction details
     console.log('[deployAnise] About to send transaction with:', {
       moduleAddresses,
       initData,
@@ -127,13 +125,12 @@ export async function deployAnise(template: Template, config: Record<string, any
       modulesForBackend: modules,
     });
 
-    // Prepare transaction
+    // Prepare transaction (let MetaMask handle gas estimation)
     const tx = {
       from: signerAddress,
       to: factoryAddress,
       data,
       chainId: CHAIN_ID,
-      // Do not set gasLimit; let MetaMask estimate it for best compatibility.
     };
 
     // Open MetaMask for user confirmation
@@ -142,10 +139,9 @@ export async function deployAnise(template: Template, config: Record<string, any
     // Send transaction via WalletConnect
     const txHash = await walletConnectService.sendTransaction(tx);
 
-    // Add DAO to Firestore via backend (now with creatorUid and modules)
+    // Add DAO to Firestore via backend
     await createDao(metadata, txHash, creatorUid, modules);
 
-    // Show only final confirmation with Polyscan link
     Alert.alert(
       'Transaction Sent',
       `Your DAO deployment transaction was sent!\n\nTx Hash: ${txHash}\n\nYou can track it on Polyscan. Once confirmed, your DAO will be live.`,
@@ -155,11 +151,15 @@ export async function deployAnise(template: Template, config: Record<string, any
       ]
     );
   } catch (err: unknown) {
-    let errorMsg = 'An unexpected error occurred.';
+    let errorMsg: string;
     if (err instanceof Error) {
       errorMsg = err.message;
     } else if (typeof err === 'string') {
       errorMsg = err;
+    } else if (err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string') {
+      errorMsg = (err as { message: string }).message;
+    } else {
+      errorMsg = 'An unexpected error occurred.';
     }
     Alert.alert('Deployment Error', errorMsg);
     console.log('[deployAnise] Deployment error:', err);

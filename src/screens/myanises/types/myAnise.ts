@@ -1,10 +1,38 @@
 // Define the structure of an Anise (DAO/group) object
 export interface Anise {
-    id: string;           // Unique identifier for the Anise
-    name: string;         // Name of the Anise
-    members: number;      // Number of members/contributors
-    role: string;         // User's role in this Anise (e.g., Admin, Member)
-    created: string;      // Creation date
-    status?: string;      // Status (optional, not used)
-    description?: string; // Optional: DAO description
+  id: string;
+  name: string;
+  description: string;
+  members: string | number;
+  role: string;
+  created: string;
+  status?: 'Active' | 'Inactive';
+  isCharity?: boolean;
+  metadata?: {
+    name: string;
+    description: string;
+    intendedAudience: string;
+    mandate: string;
+    isPublic: boolean;
+    templateId: string;
+  };
+  modules?: {
+    TreasuryModule?: {
+      address: string;
+      config?: Record<string, any>;
+    };
+    MemberModule?: {
+      config?: Record<string, any>;
+    };
+    ProposalVotingModule?: {
+      config?: {
+        approvalThreshold: number;
+      };
+    };
+    ClaimVotingModule?: {
+      config?: {
+        approvalThreshold: number;
+      };
+    };
+  };
 }
