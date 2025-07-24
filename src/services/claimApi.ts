@@ -41,7 +41,26 @@ export const createClaim = async (daoAddress: string, data: { title: string; amo
     const txHash = await walletConnectService.sendTransaction(tx) as string;
     console.log('Transaction sent:', txHash);
 
-    // 5. Show success alert with Polyscan link
+    // 5. Get JWT token
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) throw new Error('Not authenticated');
+
+    // 6. Update backend
+    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/claims`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ ...data, txHash }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to create claim');
+    }
+
+    // 7. Show success alert with Polyscan link
     Alert.alert(
       'Transaction Sent',
       `Your claim was submitted!\n\nTx Hash: ${txHash}`,
@@ -51,7 +70,7 @@ export const createClaim = async (daoAddress: string, data: { title: string; amo
       ]
     );
 
-    return { txHash };
+    return await res.json();
   } catch (err: any) {
     console.error('Error creating claim:', err);
     throw err;

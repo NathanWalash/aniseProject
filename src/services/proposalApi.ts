@@ -29,7 +29,26 @@ export const createProposal = async (daoAddress: string, data: { title: string; 
     const txHash = await walletConnectService.sendTransaction(tx) as string;
     console.log('Transaction sent:', txHash);
 
-    // 4. Show success alert with Polyscan link
+    // 4. Get JWT token
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) throw new Error('Not authenticated');
+
+    // 5. Update backend
+    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/proposals`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ ...data, txHash }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to create proposal');
+    }
+
+    // 6. Show success alert with Polyscan link
     Alert.alert(
       'Transaction Sent',
       `Your proposal was submitted!\n\nTx Hash: ${txHash}`,
@@ -39,7 +58,7 @@ export const createProposal = async (daoAddress: string, data: { title: string; 
       ]
     );
 
-    return { txHash };
+    return await res.json();
   } catch (err: any) {
     console.error('Error creating proposal:', err);
     throw err;
