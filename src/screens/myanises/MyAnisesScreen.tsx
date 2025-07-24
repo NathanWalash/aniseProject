@@ -36,8 +36,9 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
-  // Get wallet address from user profile
+  // Get user data
   const walletAddress = user?.wallet?.address;
   const uid = user?.uid;
 
@@ -46,15 +47,23 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
     const { reset = false, refresh = false } = options;
     
     // Validate required data
-    if (!uid || !walletAddress) {
-      console.log('Missing user data:', { uid, walletAddress });
-      setError('Please connect your wallet first');
+    if (!uid) {
+      console.log('[MyAnises] No UID available:', { uid });
+      setError('Please log in to view your Anises');
+      setInitialLoad(false);
+      return;
+    }
+
+    if (!walletAddress) {
+      console.log('[MyAnises] No wallet connected:', { uid });
+      setError('Please connect your wallet to view your Anises');
+      setInitialLoad(false);
       return;
     }
 
     // Don't fetch if already loading (unless it's a refresh)
     if (!refresh && loading) {
-      console.log('Already loading, skipping fetch');
+      console.log('[MyAnises] Already loading, skipping fetch');
       return;
     }
 
@@ -68,7 +77,7 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
     }
 
     try {
-      console.log('Fetching DAOs for:', { uid, walletAddress });
+      console.log('[MyAnises] Fetching DAOs:', { uid, walletAddress, page, search });
       
       const idToken = await AsyncStorage.getItem('idToken');
       if (!idToken) {
@@ -82,63 +91,107 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
       });
 
       const url = `${API_BASE_URL}/api/users/${uid}/daos?${params}`;
-      console.log('Fetching from URL:', url);
+      console.log('[MyAnises] Fetching from URL:', url);
       
+      let errorData;
       const res = await fetch(url, {
         headers: { 'Authorization': `Bearer ${idToken}` },
       });
 
-      if (!res.ok) {
-        throw new Error(`Failed to fetch DAOs: ${res.status}`);
+      try {
+        errorData = await res.json();
+      } catch (e) {
+        console.error('[MyAnises] Failed to parse response:', e);
+        throw new Error('Failed to parse server response');
       }
 
-      const data = await res.json();
-      console.log('Received data:', data);
-      
-      const mapped: Anise[] = data.daos.map((dao: any) => ({
-        id: dao.daoAddress || dao.id,
-        name: dao.metadata?.name || 'Unnamed DAO',
-        members: dao.memberCount ?? '?',
-        role: dao.role || '',
-        created: formatDate(dao.createdAt),
-        description: dao.metadata?.description || '',
-        metadata: {
-          name: dao.metadata?.name || '',
-          description: dao.metadata?.description || '',
-          intendedAudience: dao.metadata?.intendedAudience || '',
-          mandate: dao.metadata?.mandate || '',
-          isPublic: dao.metadata?.isPublic || false,
-          templateId: dao.metadata?.templateId || ''
-        },
-        modules: dao.modules || {} // Add modules from the API response
-      }));
+      if (!res.ok) {
+        console.error('[MyAnises] API error:', errorData);
+        throw new Error(errorData.error || `Failed to fetch DAOs: ${res.status}`);
+      }
 
-      setMyAnises(reset || page === 1 ? mapped : prev => [...prev, ...mapped]);
+      const data = errorData; // We already parsed it
+      console.log('[MyAnises] Received data:', {
+        total: data.total,
+        hasMore: data.hasMore,
+        daoCount: data.daos?.length
+      });
+      
+      if (!Array.isArray(data.daos)) {
+        console.error('[MyAnises] Invalid data format:', data);
+        throw new Error('Invalid data format received from server');
+      }
+
+      const mapped: Anise[] = data.daos.map((dao: any) => {
+        console.log('[MyAnises] Processing DAO:', {
+          id: dao.daoAddress,
+          name: dao.metadata?.name,
+          role: dao.role,
+          memberCount: dao.memberCount
+        });
+        
+        return {
+          id: dao.daoAddress,
+          name: dao.metadata?.name || 'Unnamed DAO',
+          description: dao.metadata?.description || '',
+          members: dao.memberCount ?? 0,
+          role: dao.role || 'Member',
+          created: formatDate(dao.createdAt),
+          status: 'Active',
+          metadata: {
+            name: dao.metadata?.name || '',
+            description: dao.metadata?.description || '',
+            intendedAudience: dao.metadata?.intendedAudience || '',
+            mandate: dao.metadata?.mandate || '',
+            isPublic: dao.metadata?.isPublic || false,
+            templateId: dao.metadata?.templateId || ''
+          },
+          modules: dao.modules || {}
+        };
+      });
+
+      console.log('[MyAnises] Mapped DAOs:', mapped.map(d => ({
+        id: d.id,
+        name: d.name,
+        role: d.role
+      })));
+
+      setMyAnises(prev => {
+        const newState = reset ? mapped : [...prev, ...mapped];
+        console.log('[MyAnises] New state:', newState.length, 'DAOs');
+        return newState;
+      });
       setHasMore(data.hasMore);
       setError(null);
     } catch (err: any) {
-      console.error('Error fetching DAOs:', err);
-      setError(err.message || 'Failed to load your Nises');
+      console.error('[MyAnises] Error:', err);
+      setError(err.message || 'Failed to load your Anises');
+      Alert.alert(
+        'Error Loading Anises',
+        `${err.message}\n\nPlease try again or contact support if the issue persists.`
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setInitialLoad(false);
     }
   }, [uid, walletAddress, page, search, loading]);
 
   // Initial load
   useEffect(() => {
-    console.log('Initial load effect, user data:', { uid, walletAddress });
-    if (walletAddress && uid) {
+    if (uid) {
       fetchMyAnises({ reset: true });
+    } else {
+      setInitialLoad(false);
     }
-  }, [walletAddress, uid]);
+  }, [uid, walletAddress]);
 
   // Handle search with debounce
   useEffect(() => {
-    if (!search) return; // Don't trigger on empty search
-    
     const timer = setTimeout(() => {
-      fetchMyAnises({ reset: true });
+      if (uid && walletAddress) {
+        fetchMyAnises({ reset: true });
+      }
     }, 500);
     
     return () => clearTimeout(timer);
@@ -146,7 +199,6 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
 
   // Handle refresh
   const onRefresh = useCallback(() => {
-    console.log('Refreshing...');
     setRefreshing(true);
     fetchMyAnises({ reset: true, refresh: true });
   }, [fetchMyAnises]);
@@ -164,19 +216,20 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
     navigation.navigate('AniseDetails', { anise });
   };
 
-  // Debug output
-  console.log('Current state:', { 
-    hasWallet: !!walletAddress, 
-    loading, 
-    refreshing, 
-    anisesCount: myAnises.length,
-    error 
-  });
+  if (initialLoad) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#2563eb" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
       <View style={{ padding: 20, flex: 1 }}>
-        {/* Header with Refresh Button */}
+        {/* Header */}
         <View style={{ 
           flexDirection: 'row', 
           justifyContent: 'space-between', 
@@ -186,29 +239,31 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
           <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#23202A' }}>
             My Anises
           </Text>
-          <TouchableOpacity 
-            onPress={onRefresh}
-            disabled={loading || refreshing}
-            style={{ 
-              backgroundColor: '#2563eb',
-              padding: 8,
-              borderRadius: 8,
-              opacity: (loading || refreshing) ? 0.7 : 1
-            }}
-          >
-            <Text style={{ color: '#fff', fontWeight: '500' }}>
-              {loading || refreshing ? 'Refreshing...' : 'Refresh'}
-            </Text>
-          </TouchableOpacity>
+          {walletAddress && myAnises.length > 0 && (
+            <TouchableOpacity 
+              onPress={onRefresh}
+              disabled={loading || refreshing}
+              style={{ 
+                backgroundColor: '#2563eb',
+                padding: 8,
+                borderRadius: 8,
+                opacity: (loading || refreshing) ? 0.7 : 1
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: '500' }}>
+                {loading || refreshing ? 'Refreshing...' : 'Refresh'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Search Bar */}
-        {walletAddress && (
+        {/* Search Bar - Only show if we have DAOs */}
+        {walletAddress && myAnises.length > 0 && (
           <View style={{ marginBottom: 16 }}>
             <TextInput
               value={search}
               onChangeText={setSearch}
-              placeholder="Search for a Nise"
+              placeholder="Search your Anises"
               style={{ 
                 backgroundColor: '#fff',
                 borderRadius: 8,
@@ -222,24 +277,10 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
           </View>
         )}
 
-        {/* No wallet address */}
-        {!walletAddress && (
+        {/* Error State */}
+        {error && (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: '#888', fontSize: 18, textAlign: 'center', marginTop: 40 }}>
-              Set up your wallet and join a Nise to see your groups here!
-            </Text>
-          </View>
-        )}
-
-        {/* Loading */}
-        {walletAddress && loading && page === 1 && !refreshing && (
-          <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 40 }} />
-        )}
-
-        {/* Error */}
-        {walletAddress && error && (
-          <View style={{ marginTop: 24, alignItems: 'center' }}>
-            <Text style={{ color: 'red', marginBottom: 12 }}>{error}</Text>
+            <Text style={{ color: 'red', marginBottom: 12, textAlign: 'center' }}>{error}</Text>
             <TouchableOpacity 
               onPress={() => fetchMyAnises({ reset: true })}
               style={{ 
@@ -254,57 +295,70 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
           </View>
         )}
 
+        {/* No Wallet Connected */}
+        {!walletAddress && !error && (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: '#888', fontSize: 18, textAlign: 'center' }}>
+              Connect your wallet to view your Anises
+            </Text>
+          </View>
+        )}
+
         {/* No DAOs */}
-        {walletAddress && !loading && !error && myAnises.length === 0 && (
-          <Text style={{ color: '#888', fontSize: 18, textAlign: 'center', marginTop: 40 }}>
-            You're not a member of any Nises yet. Join or create one to get started!
-          </Text>
+        {walletAddress && !error && !loading && myAnises.length === 0 && (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text style={{ color: '#888', fontSize: 18, textAlign: 'center' }}>
+              You're not a member of any Anises yet.{'\n'}Join or create one to get started!
+            </Text>
+          </View>
         )}
 
         {/* List of Anises */}
-        <ScrollView 
-          contentContainerStyle={{ paddingBottom: 40 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={['#2563eb']}
-              tintColor="#2563eb"
-            />
-          }
-        >
-          {myAnises.map(anise => (
-            <AniseCard 
-              key={anise.id} 
-              anise={anise} 
-              onViewManage={() => handleViewManage(anise)} 
-            />
-          ))}
-          
-          {/* Load More button */}
-          {hasMore && !loading && myAnises.length > 0 && (
-            <TouchableOpacity 
-              onPress={handleLoadMore} 
-              style={{ 
-                marginTop: 16,
-                alignSelf: 'center',
-                backgroundColor: '#2563eb',
-                borderRadius: 8,
-                paddingVertical: 10,
-                paddingHorizontal: 24
-              }}
-            >
-              <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
-                Load More
-              </Text>
-            </TouchableOpacity>
-          )}
-          
-          {/* Loading more indicator */}
-          {loading && page > 1 && (
-            <ActivityIndicator size="small" color="#2563eb" style={{ marginTop: 16 }} />
-          )}
-        </ScrollView>
+        {myAnises.length > 0 && (
+          <ScrollView
+            contentContainerStyle={{ paddingBottom: 40 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#2563eb']}
+                tintColor="#2563eb"
+              />
+            }
+          >
+            {myAnises.map(anise => (
+              <AniseCard 
+                key={anise.id} 
+                anise={anise} 
+                onViewManage={() => handleViewManage(anise)} 
+              />
+            ))}
+            
+            {/* Load More */}
+            {hasMore && !loading && (
+              <TouchableOpacity 
+                onPress={handleLoadMore} 
+                style={{ 
+                  marginTop: 16,
+                  alignSelf: 'center',
+                  backgroundColor: '#2563eb',
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  paddingHorizontal: 24
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>
+                  Load More
+                </Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* Loading More Indicator */}
+            {loading && page > 1 && (
+              <ActivityIndicator size="small" color="#2563eb" style={{ marginTop: 16 }} />
+            )}
+          </ScrollView>
+        )}
       </View>
     </SafeAreaView>
   );
