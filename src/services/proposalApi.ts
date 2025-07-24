@@ -1,28 +1,147 @@
 import { API_BASE_URL } from '../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ethers } from 'ethers';
+import { walletConnectService } from '../../wallet/walletConnectInstance';
+import ProposalVotingModuleAbi from './abis/ProposalVotingModule.json';
 
-// Calls GET /api/daos/:daoAddress/proposals to list all proposals for a DAO.
-export async function getProposals(daoAddress: string, limit = 20, startAfter?: string) {
-  const url = new URL(`${API_BASE_URL}/api/daos/${daoAddress}/proposals`);
-  url.searchParams.append('limit', String(limit));
-  if (startAfter) url.searchParams.append('startAfter', startAfter);
-  const res = await fetch(url.toString());
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Failed to fetch proposals');
-  return data.proposals;
-}
+// Create a new proposal
+export const createProposal = async (daoAddress: string, data: { title: string; description: string }) => {
+  try {
+    // 1. Check if WalletConnect is connected
+    if (!walletConnectService.isConnected()) {
+      throw new Error('Please connect your wallet first');
+    }
 
-// Calls GET /api/daos/:daoAddress/proposals/:proposalId to get proposal details.
-export async function getProposal(daoAddress: string, proposalId: string) {
-  const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/proposals/${proposalId}`);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Failed to fetch proposal');
-  return data;
-}
+    // 2. Prepare the transaction
+    const tx = {
+      to: daoAddress,
+      data: new ethers.Interface(ProposalVotingModuleAbi.abi).encodeFunctionData('createProposal', [
+        data.title,
+        data.description
+      ])
+    };
 
-// Calls GET /api/daos/:daoAddress/proposals/:proposalId/votes to get the votes object for a proposal.
-export async function getProposalVotes(daoAddress: string, proposalId: string) {
-  const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/proposals/${proposalId}/votes`);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Failed to fetch proposal votes');
-  return data.votes;
-} 
+    // 3. Send the transaction (this will trigger the MetaMask deeplink)
+    console.log('Creating proposal:', data);
+    const txHash = await walletConnectService.sendTransaction(tx) as string;
+    console.log('Transaction sent:', txHash);
+
+    // 4. Update backend
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) throw new Error('Not authenticated');
+
+    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/proposals`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ ...data, txHash }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to create proposal');
+    }
+
+    return await res.json();
+  } catch (err: any) {
+    console.error('Error creating proposal:', err);
+    throw err;
+  }
+};
+
+// Get all proposals for a DAO
+export const getProposals = async (daoAddress: string, limit = 20, startAfter?: string) => {
+  try {
+    const url = new URL(`${API_BASE_URL}/api/daos/${daoAddress}/proposals`);
+    url.searchParams.append('limit', String(limit));
+    if (startAfter) url.searchParams.append('startAfter', startAfter);
+
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) throw new Error('Not authenticated');
+
+    const res = await fetch(url.toString(), {
+      headers: { 'Authorization': `Bearer ${idToken}` },
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to fetch proposals');
+    }
+
+    return await res.json();
+  } catch (err: any) {
+    console.error('Error fetching proposals:', err);
+    throw err;
+  }
+};
+
+// Get a single proposal
+export const getProposal = async (daoAddress: string, proposalId: string) => {
+  try {
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) throw new Error('Not authenticated');
+
+    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/proposals/${proposalId}`, {
+      headers: { 'Authorization': `Bearer ${idToken}` },
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to fetch proposal');
+    }
+
+    return await res.json();
+  } catch (err: any) {
+    console.error('Error fetching proposal:', err);
+    throw err;
+  }
+};
+
+// Vote on a proposal
+export const voteOnProposal = async (daoAddress: string, proposalId: string, approve: boolean) => {
+  try {
+    // 1. Check if WalletConnect is connected
+    if (!walletConnectService.isConnected()) {
+      throw new Error('Please connect your wallet first');
+    }
+
+    // 2. Prepare the transaction
+    const tx = {
+      to: daoAddress,
+      data: new ethers.Interface(ProposalVotingModuleAbi.abi).encodeFunctionData('voteOnProposal', [
+        proposalId,
+        approve
+      ])
+    };
+
+    // 3. Send the transaction
+    console.log('Voting on proposal:', { proposalId, approve });
+    const txHash = await walletConnectService.sendTransaction(tx) as string;
+    console.log('Transaction sent:', txHash);
+
+    // 4. Update backend
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) throw new Error('Not authenticated');
+
+    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/proposals/${proposalId}/vote`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ approve, txHash }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to vote on proposal');
+    }
+
+    return await res.json();
+  } catch (err: any) {
+    console.error('Error voting on proposal:', err);
+    throw err;
+  }
+}; 

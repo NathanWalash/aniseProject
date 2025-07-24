@@ -5,6 +5,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from '../../utils/api';
 import { JoinRequestsModal } from './JoinRequestsModal';
+import { CreateClaimModal } from './claims/CreateClaimModal';
+import { CreateProposalModal } from './proposals/CreateProposalModal';
 import { getTreasuryBalance } from '../../services/blockchainService';
 
 interface AniseDetailsProps {
@@ -221,6 +223,8 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
   const { anise } = route.params;
   const [showInfo, setShowInfo] = useState(false);
   const [showJoinRequests, setShowJoinRequests] = useState(false);
+  const [showCreateClaim, setShowCreateClaim] = useState(false);
+  const [showCreateProposal, setShowCreateProposal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -299,13 +303,13 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
             <ActionButton 
               icon="document-text" 
               label="Proposals" 
-              onPress={() => console.log('Proposals')}
+              onPress={() => console.log('View Proposals')}
               badge={pendingProposals}
             />
             <ActionButton 
               icon="cash" 
               label="Claims" 
-              onPress={() => console.log('Claims')}
+              onPress={() => console.log('View Claims')}
               badge={pendingClaims}
             />
             <ActionButton 
@@ -316,12 +320,12 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
             <ActionButton 
               icon="create" 
               label="New Proposal" 
-              onPress={() => console.log('New Proposal')}
+              onPress={() => setShowCreateProposal(true)}
             />
             <ActionButton 
               icon="add-circle" 
               label="Submit Claim" 
-              onPress={() => console.log('Submit Claim')}
+              onPress={() => setShowCreateClaim(true)}
             />
             <ActionButton 
               icon="people" 
@@ -343,6 +347,20 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
       <JoinRequestsModal
         visible={showJoinRequests}
         onClose={() => setShowJoinRequests(false)}
+        daoAddress={anise.id}
+      />
+
+      {/* Create Claim Modal */}
+      <CreateClaimModal
+        visible={showCreateClaim}
+        onClose={() => setShowCreateClaim(false)}
+        daoAddress={anise.id}
+      />
+
+      {/* Create Proposal Modal */}
+      <CreateProposalModal
+        visible={showCreateProposal}
+        onClose={() => setShowCreateProposal(false)}
         daoAddress={anise.id}
       />
     </SafeAreaView>
