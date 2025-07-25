@@ -9,6 +9,7 @@ interface ClaimCardProps {
   status: 'pending' | 'approved' | 'rejected';
   hasVoted: boolean;
   isCreator: boolean;
+  creatorName?: string;
   onPress: () => void;
 }
 
@@ -19,6 +20,7 @@ export const ClaimCard: React.FC<ClaimCardProps> = ({
   status,
   hasVoted,
   isCreator,
+  creatorName,
   onPress,
 }) => {
   const getButtonType = () => {
@@ -32,6 +34,9 @@ export const ClaimCard: React.FC<ClaimCardProps> = ({
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{title}</Text>
+      {creatorName && (
+        <Text style={styles.creatorName}>Created by {creatorName}</Text>
+      )}
       <Text style={styles.amount}>£{amount}</Text>
       <Text 
         style={styles.description}
@@ -67,6 +72,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
     marginBottom: 4,
+  },
+  creatorName: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+    fontStyle: 'italic',
   },
   amount: {
     fontSize: 16,

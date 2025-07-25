@@ -5,8 +5,9 @@ import { Claim, listClaims } from '../../../services/claimApi';
 import { ClaimCard } from '../components/ClaimCard';
 import { VotingModal } from '../components/VotingModal';
 import { walletConnectService } from '../../../../wallet/walletConnectInstance';
+import { API_BASE_URL, getAuthHeaders } from '../../../utils/api';
 
-type FilterType = 'pending' | 'approved' | 'rejected';
+type FilterType = 'pending' | 'approved' | 'rejected' | 'paid';
 
 interface ClaimsListScreenProps {
   navigation: any;
@@ -24,6 +25,7 @@ export const ClaimsListScreen: React.FC<ClaimsListScreenProps> = ({ navigation, 
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
   const { daoAddress, claimThreshold } = route.params;
 
   // Fetch claims on mount and when filter changes
@@ -44,6 +46,42 @@ export const ClaimsListScreen: React.FC<ClaimsListScreenProps> = ({ navigation, 
 
     fetchClaims();
   }, [daoAddress]);
+
+  // Fetch creator names when claims change
+  useEffect(() => {
+    const fetchCreatorNames = async () => {
+      console.log('Fetching creator names for claims:', claims);
+      const newCreatorNames: Record<string, string> = {};
+      const uniqueCreators = new Set(claims.map(claim => claim.createdBy));
+      console.log('Unique creators:', Array.from(uniqueCreators));
+      
+      try {
+        const headers = await getAuthHeaders();
+        
+        for (const uid of uniqueCreators) {
+          try {
+            console.log('Fetching name for creator:', uid);
+            const res = await fetch(`${API_BASE_URL}/api/auth/users/${uid}`, { headers });
+            const data = await res.json();
+            console.log('Creator data response:', data);
+            if (res.ok) {
+              newCreatorNames[uid] = `${data.firstName} ${data.lastName}`;
+            }
+          } catch (err) {
+            console.error('Error fetching creator name:', err);
+          }
+        }
+        console.log('Final creator names:', newCreatorNames);
+        setCreatorNames(newCreatorNames);
+      } catch (err) {
+        console.error('Error getting auth headers:', err);
+      }
+    };
+
+    if (claims.length > 0) {
+      fetchCreatorNames();
+    }
+  }, [claims]);
 
   // Get current wallet address for checking if user has voted
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -94,6 +132,7 @@ export const ClaimsListScreen: React.FC<ClaimsListScreenProps> = ({ navigation, 
         {renderFilterButton('pending', 'Pending')}
         {renderFilterButton('approved', 'Approved')}
         {renderFilterButton('rejected', 'Rejected')}
+        {renderFilterButton('paid', 'Paid')}
       </View>
 
       {loading ? (
@@ -116,6 +155,7 @@ export const ClaimsListScreen: React.FC<ClaimsListScreenProps> = ({ navigation, 
               status={item.status}
               hasVoted={hasVoted(item)}
               isCreator={item.claimant?.toLowerCase() === walletAddress}
+              creatorName={item.createdBy ? creatorNames[item.createdBy] : undefined}
               onPress={() => {
                 if (item.status === 'pending' && !hasVoted(item) && item.claimant?.toLowerCase() !== walletAddress) {
                   setSelectedClaim(item);
@@ -192,12 +232,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
+    flexWrap: 'wrap',  // Add this to allow wrapping of filters
+    gap: 8,  // Add spacing between wrapped items
   },
   filterButton: {
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 16,
-    marginRight: 8,
     backgroundColor: '#F3F4F6',
   },
   activeFilter: {

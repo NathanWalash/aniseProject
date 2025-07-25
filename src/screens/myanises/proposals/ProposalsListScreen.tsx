@@ -5,6 +5,7 @@ import { Proposal, listProposals } from '../../../services/proposalApi';
 import { ProposalCard } from '../components/ProposalCard';
 import { VotingModal } from '../components/VotingModal';
 import { walletConnectService } from '../../../../wallet/walletConnectInstance';
+import { API_BASE_URL, getAuthHeaders } from '../../../utils/api';
 
 type FilterType = 'pending' | 'approved' | 'rejected';
 
@@ -24,6 +25,7 @@ export const ProposalsListScreen: React.FC<ProposalsListScreenProps> = ({ naviga
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
   const { daoAddress, proposalThreshold } = route.params;
 
   // Fetch proposals on mount
@@ -44,6 +46,42 @@ export const ProposalsListScreen: React.FC<ProposalsListScreenProps> = ({ naviga
 
     fetchProposals();
   }, [daoAddress]);
+
+  // Fetch creator names when proposals change
+  useEffect(() => {
+    const fetchCreatorNames = async () => {
+      console.log('Fetching creator names for proposals:', proposals);
+      const newCreatorNames: Record<string, string> = {};
+      const uniqueCreators = new Set(proposals.map(proposal => proposal.createdBy));
+      console.log('Unique creators:', Array.from(uniqueCreators));
+      
+      try {
+        const headers = await getAuthHeaders();
+        
+        for (const uid of uniqueCreators) {
+          try {
+            console.log('Fetching name for creator:', uid);
+            const res = await fetch(`${API_BASE_URL}/api/auth/users/${uid}`, { headers });
+            const data = await res.json();
+            console.log('Creator data response:', data);
+            if (res.ok) {
+              newCreatorNames[uid] = `${data.firstName} ${data.lastName}`;
+            }
+          } catch (err) {
+            console.error('Error fetching creator name:', err);
+          }
+        }
+        console.log('Final creator names:', newCreatorNames);
+        setCreatorNames(newCreatorNames);
+      } catch (err) {
+        console.error('Error getting auth headers:', err);
+      }
+    };
+
+    if (proposals.length > 0) {
+      fetchCreatorNames();
+    }
+  }, [proposals]);
 
   // Get current wallet address for checking if user has voted
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -115,6 +153,7 @@ export const ProposalsListScreen: React.FC<ProposalsListScreenProps> = ({ naviga
               status={item.status}
               hasVoted={hasVoted(item)}
               isCreator={item.proposer?.toLowerCase() === walletAddress}
+              creatorName={item.createdBy ? creatorNames[item.createdBy] : undefined}
               onPress={() => {
                 if (item.status === 'pending' && !hasVoted(item) && item.proposer?.toLowerCase() !== walletAddress) {
                   setSelectedProposal(item);

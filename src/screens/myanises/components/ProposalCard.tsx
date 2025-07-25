@@ -8,6 +8,7 @@ interface ProposalCardProps {
   status: 'pending' | 'approved' | 'rejected';
   hasVoted: boolean;
   isCreator: boolean;
+  creatorName?: string;
   onPress: () => void;
 }
 
@@ -17,6 +18,7 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
   status,
   hasVoted,
   isCreator,
+  creatorName,
   onPress,
 }) => {
   const getButtonType = () => {
@@ -30,6 +32,9 @@ export const ProposalCard: React.FC<ProposalCardProps> = ({
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{title}</Text>
+      {creatorName && (
+        <Text style={styles.creatorName}>Created by {creatorName}</Text>
+      )}
       <Text 
         style={styles.description}
         numberOfLines={2}
@@ -63,7 +68,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  creatorName: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+    fontStyle: 'italic',
   },
   description: {
     fontSize: 14,
