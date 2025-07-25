@@ -1,23 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusButton } from '../components/StatusButton';
-import { db } from '../../../utils/firebase';
+import { Claim } from '../../../services/claimApi';
+import { API_BASE_URL } from '../../../utils/api';
 
 interface ClaimCardProps {
-  claim: {
-    title: string;
-    amount: string;
-    description: string;
-    claimant: string;
-    createdBy: string;
-    status: string;
-    voters?: Record<string, {
-      vote: boolean;
-      timestamp: { _seconds: number; _nanoseconds: number };
-      txHash: string;
-    }>;
-  };
+  claim: Claim;
   onPress: () => void;
   userWallet: string;
 }
@@ -28,19 +16,12 @@ export default function ClaimCard({ claim, onPress, userWallet }: ClaimCardProps
   useEffect(() => {
     const fetchClaimantName = async () => {
       try {
-        const userDoc = await getDoc(doc(db, 'users', claim.createdBy));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          const firstName = userData.firstName || '';
-          const lastName = userData.lastName || '';
-          if (firstName || lastName) {
-            setClaimantName(`${firstName} ${lastName}`.trim());
-          } else {
-            // If no name, use shortened wallet address
-            setClaimantName(`${claim.claimant.slice(0, 6)}...${claim.claimant.slice(-4)}`);
-          }
+        const res = await fetch(`${API_BASE_URL}/api/users/${claim.createdBy}`);
+        const data = await res.json();
+        if (res.ok) {
+          setClaimantName(`${data.firstName} ${data.lastName}`);
         } else {
-          // If no user document, use shortened wallet address
+          // If no user data, use shortened wallet address
           setClaimantName(`${claim.claimant.slice(0, 6)}...${claim.claimant.slice(-4)}`);
         }
       } catch (error) {
@@ -65,24 +46,18 @@ export default function ClaimCard({ claim, onPress, userWallet }: ClaimCardProps
 
   return (
     <TouchableOpacity 
-      style={styles.card} 
+      style={styles.card}
       onPress={onPress}
-      disabled={isCreator || hasVoted || claim.status !== 'pending'}
+      disabled={claim.status !== 'pending' || hasVoted || isCreator}
     >
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{claim.title}</Text>
-          <Text style={styles.amount}>£{claim.amount}</Text>
-        </View>
-        <Text style={styles.description} numberOfLines={2}>
-          {claim.description}
-        </Text>
-        <Text style={styles.claimant}>
-          Submitted by: {claimantName}
-        </Text>
-      </View>
+      <Text style={styles.title}>{claim.title}</Text>
+      <Text style={styles.creatorName}>Created by {claimantName}</Text>
+      <Text style={styles.amount}>£{claim.amount}</Text>
+      <Text style={styles.description} numberOfLines={2}>
+        {claim.description}
+      </Text>
       <StatusButton 
-        type={getButtonType()} 
+        type={getButtonType()}
         onPress={onPress}
       />
     </TouchableOpacity>
@@ -91,46 +66,40 @@ export default function ClaimCard({ claim, onPress, userWallet }: ClaimCardProps
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
     padding: 16,
-    marginVertical: 8,
-    marginHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  content: {
-    flex: 1,
+    borderRadius: 12,
     marginBottom: 12,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    flex: 1,
-    marginRight: 12,
+    color: '#111827',
+    marginBottom: 4,
+  },
+  creatorName: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 4,
+    fontStyle: 'italic',
   },
   amount: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#059669', // Green color for amount
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#059669',
+    marginBottom: 8,
   },
   description: {
     fontSize: 14,
-    color: '#666',
+    color: '#6B7280',
     marginBottom: 8,
-  },
-  claimant: {
-    fontSize: 14,
-    color: '#666',
-    fontStyle: 'italic',
   },
 }); 
