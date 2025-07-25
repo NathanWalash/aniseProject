@@ -1,42 +1,36 @@
-// src/screens/HomeScreen.tsx
-import React, { useEffect, useState } from 'react';
-import {
-  SafeAreaView,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  View,
-  TextInput,
-  ScrollView,
-  StyleSheet,
-  Image,
-  Alert,
-  LayoutAnimation,
-  Platform,
-  Linking,
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '../../utils/api';
+// src/screens/ProfileScreen.tsx
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Alert, SafeAreaView, ActivityIndicator, TextInput, Image, Linking, LayoutAnimation } from 'react-native';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import DatePicker from 'react-native-date-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { walletConnectService } from '../../../wallet/walletConnectInstance';
 import { connectAndLinkWallet, getWalletAddress } from '../../services/walletApi';
+import { API_BASE_URL } from '../../utils/api';
+import { TokenBalanceCard } from './components/TokenBalanceCard';
+import { getUserTokenBalance } from '../../services/blockchainService';
+import { getContractAddress } from '../../utils/contractAddresses';
+import Icon from 'react-native-vector-icons/Ionicons';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import DatePicker from 'react-native-date-picker';
 
 interface Profile {
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
+  uid: string;
   email: string;
-  uid?: string;
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string;
   wallet?: {
     address: string;
   };
+  gocardless?: {
+    mandate_id: string;
+  };
 }
 
-type ProfileScreenProps = { onLogout: () => void };
+interface ProfileScreenProps {
+  onLogout: () => void;
+}
 
 // Fetch user profile from backend using ID token
 type UserProfile = {
@@ -102,6 +96,10 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   const [walletLoading, setWalletLoading] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
   const [showReconnectPrompt, setShowReconnectPrompt] = useState(false);
+  const [tokenBalance, setTokenBalance] = useState<string | null>(null);
+  const [tokenBalanceLoading, setTokenBalanceLoading] = useState(false);
+  const [tokenBalanceError, setTokenBalanceError] = useState<string | null>(null);
+  const [selectedDao, setSelectedDao] = useState<string | null>(null);
 
   // Assume userId is available from props or app state
   const userId = profile?.uid || '';
@@ -159,7 +157,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
       Alert.alert(
         'Signature Required',
         'Return to MetaMask to sign the signature request. After signing, you will return to the app.',
-        [{ text: 'OK' }]
+        [{ text: 'Open MetaMask', onPress: () => Linking.openURL('metamask://') }]
       );
       const address = await connectAndLinkWallet(profile.uid);
       setWalletConnected(true);
@@ -264,6 +262,40 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
       walletConnectService.onSessionDisconnect = undefined;
     };
   }, [profile?.wallet?.address]);
+
+  // Add token balance fetching
+  useEffect(() => {
+    const fetchTokenBalance = async () => {
+      if (!walletConnected || !walletAddress) return;
+      
+      setTokenBalanceLoading(true);
+      setTokenBalanceError(null);
+      try {
+        const tokenAddress = getContractAddress('Token');
+        if (!tokenAddress || tokenAddress === '0x0000000000000000000000000000000000000000') {
+          throw new Error('Invalid token contract address');
+        }
+        const balance = await getUserTokenBalance(tokenAddress, walletAddress);
+        setTokenBalance(balance.toString());
+      } catch (err: any) {
+        console.error('Error fetching token balance:', err);
+        setTokenBalanceError(
+          err.code === 'CALL_EXCEPTION' ? 'Failed to read from token contract' :
+          err.code === 'NETWORK_ERROR' ? 'Network error - please check your connection' :
+          err.message || 'Failed to fetch token balance'
+        );
+      } finally {
+        setTokenBalanceLoading(false);
+      }
+    };
+
+    fetchTokenBalance();
+  }, [walletConnected, walletAddress]);
+
+  const handleWithdraw = () => {
+    // To be implemented
+    Alert.alert('Coming Soon', 'Withdraw functionality will be available soon!');
+  };
 
   // Floating label input for modern look
   const FloatingInput = ({ label, value, onChangeText, ...props }: any) => {
@@ -377,6 +409,8 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
   return (
     <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        
+
         {/* Profile Card */}
         <View style={styles.card}>
           <View style={styles.avatarWrap}>
@@ -395,7 +429,17 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
           <Text style={styles.profileEmail}>{profile?.email}</Text>
           <Text style={styles.profileDob}>DOB: {profile?.dateOfBirth}</Text>
         </View>
-
+        
+        {/* Add TokenBalanceCard if wallet is connected */}
+        {walletConnected && (
+          <TokenBalanceCard
+            balance={tokenBalance}
+            isLoading={tokenBalanceLoading}
+            error={tokenBalanceError}
+            onWithdraw={handleWithdraw}
+          />
+        )}
+        
         {/* Edit Profile Section */}
         <View style={styles.card}>
           <TouchableOpacity style={styles.sectionHeaderRow} onPress={() => toggleSection(setShowEditProfile, showEditProfile)}>

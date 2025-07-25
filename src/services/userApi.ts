@@ -8,14 +8,6 @@ export async function getUserDaos(userId: string) {
   return data.daos;
 }
 
-// Calls GET /api/users/:userId/token-balance to get the user's token balance (live from Amoy RPC).
-export async function getUserTokenBalance(userId: string) {
-  const res = await fetch(`${API_BASE_URL}/api/users/${userId}/token-balance`);
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Failed to fetch user token balance');
-  return data;
-}
-
 // Calls GET /api/users/:userId/notifications to list all notifications for a user.
 export async function getUserNotifications(userId: string) {
   const res = await fetch(`${API_BASE_URL}/api/users/${userId}/notifications`);
