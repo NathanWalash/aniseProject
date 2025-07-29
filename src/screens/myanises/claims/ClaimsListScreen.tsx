@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Claim, listClaims } from '../../../services/claimApi';
+import { Claim, listClaims, payoutClaim } from '../../../services/claimApi';
 import { ClaimCard } from '../components/ClaimCard';
 import { VotingModal } from '../components/VotingModal';
 import { walletConnectService } from '../../../../wallet/walletConnectInstance';
@@ -99,6 +99,22 @@ export const ClaimsListScreen: React.FC<ClaimsListScreenProps> = ({ navigation, 
 
   const filteredClaims = claims.filter(claim => claim.status === filter);
 
+  const handlePayout = async (claim: Claim) => {
+    try {
+      const claimId = claim.claimId?.toString();
+      if (!claimId) {
+        throw new Error('Claim ID is missing');
+      }
+      await payoutClaim(daoAddress, claimId);
+      // Refresh claims after payout
+      const { claims: fetchedClaims } = await listClaims(daoAddress);
+      setClaims(fetchedClaims);
+    } catch (err: any) {
+      console.error('Error paying out claim:', err);
+      // Error is already handled in the payoutClaim function
+    }
+  };
+
   const renderFilterButton = (type: FilterType, label: string) => (
     <TouchableOpacity
       style={[
@@ -161,6 +177,7 @@ export const ClaimsListScreen: React.FC<ClaimsListScreenProps> = ({ navigation, 
                   setSelectedClaim(item);
                 }
               }}
+              onPayout={() => handlePayout(item)}
             />
           )}
           contentContainerStyle={styles.listContent}

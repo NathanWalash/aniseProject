@@ -8,6 +8,10 @@ import { JoinRequestsModal } from './JoinRequestsModal';
 import { CreateClaimModal } from './claims/CreateClaimModal';
 import { CreateProposalModal } from './proposals/CreateProposalModal';
 import { getTreasuryBalance } from '../../services/blockchainService';
+import { getJoinRequests } from '../../services/memberApi';
+import { listClaims } from '../../services/claimApi';
+import { listProposals } from '../../services/proposalApi';
+import { walletConnectService } from '../../../wallet/walletConnectInstance';
 
 interface AniseDetailsProps {
   route: { params: { anise: Anise } };
@@ -227,16 +231,90 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
   const [showCreateProposal, setShowCreateProposal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingJoinRequests, setPendingJoinRequests] = useState<number>(0);
+  const [pendingProposals, setPendingProposals] = useState<number>(0);
+  const [pendingClaims, setPendingClaims] = useState<number>(0);
   
   // Use the values we already have from the MyAnises page
   const memberCount = anise.members;
   const userRole = anise.role;
   const isAdmin = userRole === 'Admin';
-  
-  // Temporary hardcoded values for testing
-  const pendingJoinRequests = 3;
-  const pendingProposals = 2;
-  const pendingClaims = 1;
+
+  // Fetch actual counts for join requests, claims, and proposals
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        // Get user's wallet address
+        const userAddress = walletConnectService.session?.namespaces?.eip155?.accounts[0].split(':').pop();
+        console.log('User address:', userAddress);
+        
+        // Fetch join request count (admin only)
+        if (isAdmin) {
+          try {
+            const joinRequests = await getJoinRequests(anise.id);
+            setPendingJoinRequests(joinRequests.length);
+          } catch (err) {
+            console.error('Failed to fetch join request count:', err);
+            setPendingJoinRequests(0);
+          }
+        }
+        
+        // Fetch claims and filter for ones needing user's vote (exclude user's own claims)
+        try {
+          const claims = await listClaims(anise.id);
+          console.log('All claims:', claims.claims);
+          console.log('Claims with claimant addresses:', claims.claims.map(c => ({ 
+            claimId: c.claimId, 
+            claimant: c.claimant, 
+            status: c.status,
+            votes: c.votes 
+          })));
+          
+          const pendingClaimsNeedingVote = claims.claims.filter(c => {
+            const isPending = c.status === 'pending';
+            const userHasntVoted = !c.votes[userAddress];
+            const isNotUserClaim = c.claimant.toLowerCase() !== userAddress.toLowerCase();
+            
+            console.log(`Claim ${c.claimId}:`, {
+              isPending,
+              userHasntVoted,
+              isNotUserClaim,
+              claimant: c.claimant,
+              userAddress: userAddress
+            });
+            
+            return isPending && userHasntVoted && isNotUserClaim;
+          });
+          
+          console.log('Pending claims needing vote:', pendingClaimsNeedingVote);
+          setPendingClaims(pendingClaimsNeedingVote.length);
+        } catch (err) {
+          console.error('Failed to fetch claims count:', err);
+          setPendingClaims(0);
+        }
+        
+        // Fetch proposals and filter for ones needing user's vote (exclude user's own proposals)
+        try {
+          const proposals = await listProposals(anise.id);
+          console.log('All proposals:', proposals.proposals);
+          
+          const pendingProposalsNeedingVote = proposals.proposals.filter(p => 
+            p.status === 'pending' && 
+            !p.votes[userAddress] && 
+            p.proposer.toLowerCase() !== userAddress.toLowerCase()
+          );
+          setPendingProposals(pendingProposalsNeedingVote.length);
+        } catch (err) {
+          console.error('Failed to fetch proposals count:', err);
+          setPendingProposals(0);
+        }
+      } catch (err) {
+        console.error('Failed to fetch counts:', err);
+      }
+    };
+
+    fetchCounts();
+  }, [anise.id, isAdmin]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -285,7 +363,7 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
                 icon="people" 
                 label="Join Requests" 
                 onPress={() => setShowJoinRequests(true)}
-                badge={pendingJoinRequests}
+                badge={pendingJoinRequests > 0 ? pendingJoinRequests : undefined}
               />
               <ActionButton 
                 icon="shield" 
@@ -307,7 +385,7 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
                 daoAddress: anise.id,
                 proposalThreshold: anise.modules?.ProposalVotingModule?.config?.approvalThreshold || 51
               })}
-              badge={pendingProposals}
+              badge={pendingProposals > 0 ? pendingProposals : undefined}
             />
             <ActionButton 
               icon="cash" 
@@ -316,7 +394,7 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
                 daoAddress: anise.id,
                 claimThreshold: anise.modules?.ClaimVotingModule?.config?.approvalThreshold || 51
               })}
-              badge={pendingClaims}
+              badge={pendingClaims > 0 ? pendingClaims : undefined}
             />
             <ActionButton 
               icon="list" 
@@ -349,12 +427,25 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
         anise={anise}
       />
 
-      {/* Join Requests Modal */}
-      <JoinRequestsModal
-        visible={showJoinRequests}
-        onClose={() => setShowJoinRequests(false)}
-        daoAddress={anise.id}
-      />
+              {/* Join Requests Modal */}
+        <JoinRequestsModal
+          visible={showJoinRequests}
+          onClose={() => setShowJoinRequests(false)}
+          daoAddress={anise.id}
+          onRequestProcessed={() => {
+            // Refresh the count when a request is processed
+            const fetchJoinRequestCount = async () => {
+              try {
+                const joinRequests = await getJoinRequests(anise.id);
+                setPendingJoinRequests(joinRequests.length);
+              } catch (err) {
+                console.error('Failed to fetch join request count:', err);
+                setPendingJoinRequests(0);
+              }
+            };
+            fetchJoinRequestCount();
+          }}
+        />
 
       {/* Create Claim Modal */}
       <CreateClaimModal

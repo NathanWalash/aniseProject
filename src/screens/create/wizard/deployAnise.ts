@@ -33,7 +33,7 @@ function encodeInitData(moduleName: string, config: Record<string, any>, adminAd
   return '0x';
 }
 
-export async function deployAnise(template: Template, config: Record<string, any>, linkedAddress: string, creatorUid: string) {
+export async function deployAnise(template: Template, config: Record<string, any>, linkedAddress: string, creatorUid: string, navigation?: any) {
   try {
     if (!walletConnectService.isConnected() || !walletConnectService.session) {
       Alert.alert('Wallet Not Connected', 'Please connect your wallet before deploying.');
@@ -137,7 +137,7 @@ export async function deployAnise(template: Template, config: Record<string, any
     Linking.openURL('metamask://');
 
     // Send transaction via WalletConnect
-    const txHash = await walletConnectService.sendTransaction(tx);
+    const txHash = await walletConnectService.sendTransaction(tx) as string;
 
     // Add DAO to Firestore via backend
     await createDao(metadata, txHash, creatorUid, modules);
@@ -147,6 +147,14 @@ export async function deployAnise(template: Template, config: Record<string, any
       `Your DAO deployment transaction was sent!\n\nTx Hash: ${txHash}\n\nYou can track it on Polyscan. Once confirmed, your DAO will be live.`,
       [
         { text: 'View on Polyscan', onPress: () => Linking.openURL(`https://amoy.polygonscan.com/tx/${txHash}`) },
+        { 
+          text: 'View My Anises', 
+          onPress: () => {
+            if (navigation) {
+              navigation.navigate('MyAnises');
+            }
+          }
+        },
         { text: 'OK' },
       ]
     );
