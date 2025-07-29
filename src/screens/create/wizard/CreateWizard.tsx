@@ -31,7 +31,7 @@ const stepTitles = [
   'Review Your Anise',
 ];
 
-export default function CreateWizard({ user }: { user: any }) {
+export default function CreateWizard({ user, navigation }: { user: any, navigation?: any }) {
   const [step, setStep] = useState(1);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [config, setConfig] = useState<Record<string, any>>({});
@@ -118,7 +118,7 @@ export default function CreateWizard({ user }: { user: any }) {
               return;
             }
             const linkedAddress = user.walletAddress;
-            await deployAnise(selectedTemplate, config, linkedAddress, user.uid);
+            await deployAnise(selectedTemplate, config, linkedAddress, user.uid, navigation);
           }}
           disabled={!agreed}
         >
@@ -187,6 +187,7 @@ export default function CreateWizard({ user }: { user: any }) {
             agreed={agreed}
             setAgreed={setAgreed}
             user={user}
+            navigation={navigation}
           />
         )}
         {/* Subtle info link directly after last form component */}

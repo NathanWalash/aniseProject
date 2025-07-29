@@ -13,9 +13,9 @@ export const AniseCard: React.FC<Props> = ({ anise, onViewManage }) => (
   <View
     style={{
       backgroundColor: anise.isCharity ? '#F6F3FA' : '#fff', // Special color for charity
-      borderRadius: 16,                                      // Rounded corners
-      padding: 20,                                           // Padding inside the card
-      marginBottom: 16,                                      // Space below the card
+      borderRadius: 12,                                      // Match Explore page
+      padding: 16,                                           // Match Explore page
+      marginBottom: 12,                                      // Match Explore page
       borderWidth: anise.isCharity ? 2 : 1,                  // Thicker border for charity
       borderColor: anise.isCharity ? '#3B2364' : '#E0E0EA',  // Special border for charity
       shadowColor: '#B3AFC2',                                // Shadow color
@@ -39,12 +39,8 @@ export const AniseCard: React.FC<Props> = ({ anise, onViewManage }) => (
       {anise.members} contributors • {anise.role}
     </Text>
     {/* Creation date */}
-    <Text style={{ color: '#888', marginBottom: 8, fontSize: 13 }}>
+    <Text style={{ color: '#888', marginBottom: 12, fontSize: 13 }}>
       Created: {anise.created || 'Unknown'}
-    </Text>
-    {/* Status */}
-    <Text style={{ color: anise.status === 'Active' ? '#22c55e' : '#f59e42', fontWeight: '500', marginBottom: 12 }}>
-      {anise.status}
     </Text>
     {/* Charity badge */}
     {anise.isCharity && (
@@ -53,7 +49,7 @@ export const AniseCard: React.FC<Props> = ({ anise, onViewManage }) => (
     {/* View & Manage button */}
     <TouchableOpacity
       style={{
-        backgroundColor: '#3B2364',
+        backgroundColor: '#2563eb',
         borderRadius: 8,
         paddingVertical: 12,
         alignItems: 'center',

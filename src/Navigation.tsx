@@ -91,7 +91,7 @@ function TabNavigator({ user, onLogout }: NavigationProps) {
           tabBarIcon: ({ color }) => <CreateIcon color={color} />,
         }}
       >
-        {() => <CreateScreen user={user} />}
+        {(props) => <CreateScreen user={user} navigation={props.navigation} />}
       </Tab.Screen>
       <Tab.Screen
         name="MyAnises"

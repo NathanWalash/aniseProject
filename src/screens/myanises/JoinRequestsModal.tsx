@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert, StyleSheet, Linking } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getJoinRequests, getJoinRequest, acceptJoinRequest, rejectJoinRequest } from '../../services/memberApi';
@@ -24,13 +24,15 @@ interface Props {
   visible: boolean;
   onClose: () => void;
   daoAddress: string;
+  onRequestProcessed?: () => void;
 }
 
-export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddress }) => {
+export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddress, onRequestProcessed }) => {
   const [requests, setRequests] = useState<JoinRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processingRequest, setProcessingRequest] = useState<string | null>(null);
+  const [showWalletAddress, setShowWalletAddress] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -124,6 +126,14 @@ export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddres
 
       // 3. Send the transaction (this will trigger the MetaMask deeplink)
       console.log('Accepting join request for:', request.memberAddress);
+      
+      // Try to open MetaMask app
+      try {
+        await Linking.openURL('metamask://');
+      } catch (e) {
+        console.log('Could not open MetaMask:', e);
+      }
+      
       const txHash = await walletConnectService.sendTransaction(tx) as string;
       console.log('Transaction sent:', txHash);
 
@@ -131,13 +141,18 @@ export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddres
       await acceptJoinRequest(daoAddress, request.memberAddress, txHash);
 
       // 5. Refresh the list
-      await fetchJoinRequests();
-
-      Alert.alert(
-        'Success',
-        'Join request accepted successfully',
-        [{ text: 'OK' }]
-      );
+              await fetchJoinRequests();
+        
+        // Call the callback to update the count
+        if (onRequestProcessed) {
+          onRequestProcessed();
+        }
+        
+        Alert.alert(
+          'Success',
+          'Join request accepted successfully',
+          [{ text: 'OK' }]
+        );
     } catch (err: any) {
       console.error('Error accepting join request:', err);
       Alert.alert(
@@ -169,6 +184,14 @@ export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddres
 
       // 3. Send the transaction (this will trigger the MetaMask deeplink)
       console.log('Rejecting join request for:', request.memberAddress);
+      
+      // Try to open MetaMask app
+      try {
+        await Linking.openURL('metamask://');
+      } catch (e) {
+        console.log('Could not open MetaMask:', e);
+      }
+      
       const txHash = await walletConnectService.sendTransaction(tx) as string;
       console.log('Transaction sent:', txHash);
 
@@ -176,13 +199,18 @@ export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddres
       await rejectJoinRequest(daoAddress, request.memberAddress, txHash);
 
       // 5. Refresh the list
-      await fetchJoinRequests();
-
-      Alert.alert(
-        'Success',
-        'Join request rejected successfully',
-        [{ text: 'OK' }]
-      );
+              await fetchJoinRequests();
+        
+        // Call the callback to update the count
+        if (onRequestProcessed) {
+          onRequestProcessed();
+        }
+        
+        Alert.alert(
+          'Success',
+          'Join request rejected successfully',
+          [{ text: 'OK' }]
+        );
     } catch (err: any) {
       console.error('Error rejecting join request:', err);
       Alert.alert(
@@ -229,21 +257,33 @@ export const JoinRequestsModal: React.FC<Props> = ({ visible, onClose, daoAddres
               requests.map((request, index) => (
                 <View key={request.memberAddress} style={styles.requestCard}>
                   <View style={styles.requestHeader}>
-                    <Text style={styles.userName}>
-                      {request.userDetails ? 
-                        `${request.userDetails.firstName} ${request.userDetails.lastName}` :
-                        `${request.memberAddress.slice(0, 6)}...${request.memberAddress.slice(-4)}`
-                      }
-                    </Text>
-                    <Text style={styles.requestDate}>
-                      {new Date(request.requestedAt._seconds * 1000).toLocaleDateString()}
-                    </Text>
+                    <View style={styles.nameDateContainer}>
+                      <Text style={styles.userName}>
+                        {request.userDetails ? 
+                          `${request.userDetails.firstName} ${request.userDetails.lastName}` :
+                          `${request.memberAddress.slice(0, 6)}...${request.memberAddress.slice(-4)}`
+                        }
+                      </Text>
+                      <Text style={styles.requestDate}>
+                        {new Date(request.requestedAt._seconds * 1000).toLocaleDateString()}
+                      </Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={styles.infoButton}
+                      onPress={() => setShowWalletAddress(
+                        showWalletAddress === request.memberAddress ? null : request.memberAddress
+                      )}
+                    >
+                      <Icon name="information-circle-outline" size={20} color="#2563eb" />
+                    </TouchableOpacity>
                   </View>
                   
-                  <View style={styles.addressRow}>
-                    <Text style={styles.addressLabel}>Wallet:</Text>
-                    <Text style={styles.addressValue}>{request.memberAddress}</Text>
-                  </View>
+                  {showWalletAddress === request.memberAddress && (
+                    <View style={styles.addressRow}>
+                      <Text style={styles.addressLabel}>Wallet:</Text>
+                      <Text style={styles.addressValue}>{request.memberAddress}</Text>
+                    </View>
+                  )}
 
                   <View style={styles.buttonContainer}>
                     <TouchableOpacity
@@ -348,6 +388,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  nameDateContainer: {
+    flex: 1,
+  },
   userName: {
     fontSize: 16,
     fontWeight: '600',
@@ -357,18 +400,28 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 14,
   },
+  infoButton: {
+    padding: 4,
+  },
   addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     marginBottom: 16,
+    padding: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
   },
   addressLabel: {
     color: '#6B7280',
-    marginRight: 8,
+    marginBottom: 4,
+    fontSize: 12,
+    fontWeight: '500',
   },
   addressValue: {
     color: '#111827',
     fontFamily: 'monospace',
+    fontSize: 12,
+    flexWrap: 'wrap',
   },
   buttonContainer: {
     flexDirection: 'row',

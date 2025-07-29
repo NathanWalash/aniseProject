@@ -80,6 +80,14 @@ export const createClaim = async (daoAddress: string, data: { title: string; amo
       amountInWei: ethers.parseUnits(amountNum.toString(), 18).toString(),
       description: data.description
     });
+    
+    // Try to open MetaMask app
+    try {
+      await Linking.openURL('metamask://');
+    } catch (e) {
+      console.log('Could not open MetaMask:', e);
+    }
+    
     const txHash = await walletConnectService.sendTransaction(tx) as string;
     console.log('Transaction sent:', txHash);
 

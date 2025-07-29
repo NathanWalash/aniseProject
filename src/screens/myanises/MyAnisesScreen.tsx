@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, SafeAreaView, ScrollView, Alert, ActivityIndicator, TextInput, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, Text, SafeAreaView, ScrollView, Alert, ActivityIndicator, TextInput, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { AniseCard } from './AniseCard';
 import { Anise } from './types/myAnise';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -197,6 +199,16 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Removed auto-refresh on focus to prevent unnecessary API calls
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     if (uid && walletAddress && !initialLoad) {
+  //       console.log('[MyAnises] Screen focused, refreshing data');
+  //       fetchMyAnises({ reset: true, refresh: true });
+  //     }
+  //   }, [uid, walletAddress, initialLoad])
+  // );
+
   // Handle refresh
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -221,6 +233,7 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
       <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color="#2563eb" />
+          <Text style={{ marginTop: 16, color: '#666', fontSize: 16 }}>Loading your Anises...</Text>
         </View>
       </SafeAreaView>
     );
@@ -230,29 +243,23 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F7' }}>
       <View style={{ padding: 20, flex: 1 }}>
         {/* Header */}
-        <View style={{ 
-          flexDirection: 'row', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: 16 
-        }}>
-          <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#23202A' }}>
-            My Anises
-          </Text>
-          {walletAddress && myAnises.length > 0 && (
+        <View style={styles.headerContainer}>
+          <Text style={styles.title}>My Anises</Text>
+          {walletAddress && (
             <TouchableOpacity 
               onPress={onRefresh}
               disabled={loading || refreshing}
-              style={{ 
-                backgroundColor: '#2563eb',
-                padding: 8,
-                borderRadius: 8,
-                opacity: (loading || refreshing) ? 0.7 : 1
-              }}
+              style={[
+                styles.refreshButton,
+                (loading || refreshing) && styles.refreshButtonDisabled
+              ]}
             >
-              <Text style={{ color: '#fff', fontWeight: '500' }}>
-                {loading || refreshing ? 'Refreshing...' : 'Refresh'}
-              </Text>
+              <Icon 
+                name="refresh" 
+                size={20} 
+                color="#fff" 
+                style={refreshing && styles.refreshingIcon} 
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -260,20 +267,16 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
         {/* Search Bar - Only show if we have DAOs */}
         {walletAddress && myAnises.length > 0 && (
           <View style={{ marginBottom: 16 }}>
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search your Anises"
-              style={{ 
-                backgroundColor: '#fff',
-                borderRadius: 8,
-                padding: 12,
-                fontSize: 16,
-                borderWidth: 1,
-                borderColor: '#eee'
-              }}
-              placeholderTextColor="#888"
-            />
+            <View style={styles.searchContainer}>
+              <Icon name="search" size={20} color="#6B7280" style={styles.searchIcon} />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search your Anises"
+                style={styles.searchInput}
+                placeholderTextColor="#6B7280"
+              />
+            </View>
           </View>
         )}
 
@@ -304,8 +307,16 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
           </View>
         )}
 
+        {/* Loading State */}
+        {loading && page === 1 && !refreshing && (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color="#2563eb" />
+            <Text style={{ marginTop: 16, color: '#666', fontSize: 16 }}>Loading your Anises...</Text>
+          </View>
+        )}
+
         {/* No DAOs */}
-        {walletAddress && !error && !loading && myAnises.length === 0 && (
+        {walletAddress && !error && !loading && !refreshing && myAnises.length === 0 && (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
             <Text style={{ color: '#888', fontSize: 18, textAlign: 'center' }}>
               You're not a member of any Anises yet.{'\n'}Join or create one to get started!
@@ -314,7 +325,7 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
         )}
 
         {/* List of Anises */}
-        {myAnises.length > 0 && (
+        {myAnises.length > 0 && !loading && (
           <ScrollView
             contentContainerStyle={{ paddingBottom: 40 }}
             refreshControl={
@@ -355,7 +366,10 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
             
             {/* Loading More Indicator */}
             {loading && page > 1 && (
-              <ActivityIndicator size="small" color="#2563eb" style={{ marginTop: 16 }} />
+              <View style={{ alignItems: 'center', marginTop: 16 }}>
+                <ActivityIndicator size="small" color="#2563eb" />
+                <Text style={{ marginTop: 8, color: '#666', fontSize: 14 }}>Loading more...</Text>
+              </View>
             )}
           </ScrollView>
         )}
@@ -363,3 +377,49 @@ export default function MyAnisesScreen({ navigation, user }: { navigation: any, 
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#111827',
+    flex: 1,
+    marginRight: 12,
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  refreshButton: {
+    backgroundColor: '#2563eb',
+    padding: 8,
+    borderRadius: 8,
+  },
+  refreshButtonDisabled: {
+    opacity: 0.5,
+  },
+  refreshingIcon: {
+    transform: [{ rotate: '45deg' }],
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 12,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: 16,
+    color: '#000000',
+    paddingVertical: 8,
+  },
+});

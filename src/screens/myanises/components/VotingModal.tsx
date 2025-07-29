@@ -86,13 +86,11 @@ export const VotingModal: React.FC<VotingModalProps> = ({
           <Text style={styles.description}>{item.description}</Text>
           
           <View style={styles.votingInfo}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Approvals:</Text>
-              <Text style={styles.infoValue}>{item.approvals} ({threshold}% needed)</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Rejections:</Text>
-              <Text style={styles.infoValue}>{item.rejections}</Text>
+            <View style={styles.thresholdRow}>
+              <Text style={styles.thresholdText}>{threshold}% approval threshold needed</Text>
+              <TouchableOpacity style={styles.infoButton}>
+                <Icon name="information-circle-outline" size={16} color="#6B7280" />
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -208,6 +206,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     color: '#111827',
+  },
+  thresholdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  thresholdText: {
+    fontSize: 14,
+    color: '#6B7280',
+    flex: 1,
+  },
+  infoButton: {
+    padding: 4,
   },
   loader: {
     marginVertical: 20,

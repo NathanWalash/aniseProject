@@ -68,6 +68,14 @@ export const createProposal = async (daoAddress: string, data: { title: string; 
 
     // 3. Send the transaction (this will trigger the MetaMask deeplink)
     console.log('Creating proposal:', data);
+    
+    // Try to open MetaMask app
+    try {
+      await Linking.openURL('metamask://');
+    } catch (e) {
+      console.log('Could not open MetaMask:', e);
+    }
+    
     const txHash = await walletConnectService.sendTransaction(tx) as string;
     console.log('Transaction sent:', txHash);
 

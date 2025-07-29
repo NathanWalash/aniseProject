@@ -29,6 +29,7 @@ type Props = {
   agreed: boolean;
   setAgreed: (v: boolean) => void;
   user: any; // Add user to props
+  navigation?: any; // Add navigation prop
 };
 
 async function fetchUserProfile(uid: string) { // Pass uid to fetch
@@ -49,7 +50,7 @@ async function fetchUserProfile(uid: string) { // Pass uid to fetch
   }
 }
 
-export default function Step3Review({ template, config, onBack, onReset, agreed, setAgreed, user }: Props) {
+export default function Step3Review({ template, config, onBack, onReset, agreed, setAgreed, user, navigation }: Props) {
   const [creatorName, setCreatorName] = useState<string>('');
   const [profileLoading, setProfileLoading] = useState(true);
 

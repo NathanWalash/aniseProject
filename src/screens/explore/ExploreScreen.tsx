@@ -239,6 +239,7 @@ export default function ExploreScreen() {
           const userData = await response.json();
           console.log('User data:', userData);
           if (userData.wallet?.address) {
+            // Use original case wallet address, don't convert to lowercase
             setUserWalletAddress(userData.wallet.address);
           }
         }
@@ -266,6 +267,7 @@ export default function ExploreScreen() {
       console.log(`Checking membership status for DAO: ${daoAddress} and wallet: ${userWalletAddress}`);
       
       // First check if user is already a member by checking their role
+      // Use original case wallet address, don't convert to lowercase
       const memberResponse = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/members/${userWalletAddress}`, {
         headers: { 'Authorization': `Bearer ${idToken}` }
       });
@@ -274,7 +276,8 @@ export default function ExploreScreen() {
       if (memberResponse.ok) {
         const memberData = await memberResponse.json();
         console.log('Member data:', memberData);
-        if (memberData.role && memberData.role !== 'None') {
+        // Fix: Check for status 'member' instead of role comparison
+        if (memberData.status === 'member') {
           return 'member';
         }
       }
@@ -655,15 +658,15 @@ export default function ExploreScreen() {
     }
   };
 
-  // Add auto-refresh on focus
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      console.log('Screen focused, refreshing DAOs...');
-      fetchPublicDaos(true);
-    });
+  // Remove auto-refresh on focus to prevent multiple API calls
+  // useEffect(() => {
+  //   const unsubscribe = navigation.addListener('focus', () => {
+  //     console.log('Screen focused, refreshing DAOs...');
+  //     fetchPublicDaos(true);
+  //   });
 
-    return unsubscribe;
-  }, [navigation]);
+  //   return unsubscribe;
+  // }, [navigation]);
 
   // Update the fetchPublicDaos function to check membership status on initial load
   useEffect(() => {
