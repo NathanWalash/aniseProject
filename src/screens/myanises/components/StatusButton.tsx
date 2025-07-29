@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 
-type ButtonType = 'vote_now' | 'already_voted' | 'approved' | 'rejected' | 'creator';
+type ButtonType = 'vote_now' | 'already_voted' | 'approved' | 'rejected' | 'creator' | 'payout' | 'paid';
 
 interface StatusButtonProps {
   type: ButtonType;
@@ -21,6 +21,10 @@ export const StatusButton: React.FC<StatusButtonProps> = ({ type, onPress }) => 
         return styles.rejected;
       case 'creator':
         return styles.creator;
+      case 'payout':
+        return styles.payout;
+      case 'paid':
+        return styles.paid;
     }
   };
 
@@ -36,6 +40,10 @@ export const StatusButton: React.FC<StatusButtonProps> = ({ type, onPress }) => 
         return 'Rejected ✗';
       case 'creator':
         return 'Your Submission';
+      case 'payout':
+        return 'Payout';
+      case 'paid':
+        return 'Paid ✓';
     }
   };
 
@@ -43,7 +51,7 @@ export const StatusButton: React.FC<StatusButtonProps> = ({ type, onPress }) => 
     <TouchableOpacity 
       style={[styles.button, getButtonStyle()]} 
       onPress={onPress}
-      disabled={type !== 'vote_now'}
+      disabled={type !== 'vote_now' && type !== 'payout'}
     >
       <Text style={[
         styles.text,
@@ -86,5 +94,11 @@ const styles = StyleSheet.create({
   },
   creator: {
     backgroundColor: '#F3F4F6', // Light gray
+  },
+  payout: {
+    backgroundColor: '#22C55E', // Green
+  },
+  paid: {
+    backgroundColor: '#059669', // Dark green
   },
 }); 

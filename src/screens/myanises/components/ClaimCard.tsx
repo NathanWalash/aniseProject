@@ -6,11 +6,12 @@ interface ClaimCardProps {
   title: string;
   amount: string;
   description: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
   hasVoted: boolean;
   isCreator: boolean;
   creatorName?: string;
   onPress: () => void;
+  onPayout?: () => void;
 }
 
 export const ClaimCard: React.FC<ClaimCardProps> = ({
@@ -22,13 +23,25 @@ export const ClaimCard: React.FC<ClaimCardProps> = ({
   isCreator,
   creatorName,
   onPress,
+  onPayout,
 }) => {
   const getButtonType = () => {
     if (status === 'pending') {
       if (isCreator) return 'creator';
       return hasVoted ? 'already_voted' : 'vote_now';
     }
+    if (status === 'approved' && isCreator) {
+      return 'payout';
+    }
     return status;
+  };
+
+  const handleButtonPress = () => {
+    if (status === 'approved' && isCreator && onPayout) {
+      onPayout();
+    } else {
+      onPress();
+    }
   };
 
   return (
@@ -46,7 +59,7 @@ export const ClaimCard: React.FC<ClaimCardProps> = ({
       </Text>
       <StatusButton 
         type={getButtonType()}
-        onPress={onPress}
+        onPress={handleButtonPress}
       />
     </View>
   );

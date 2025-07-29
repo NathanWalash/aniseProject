@@ -3,6 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ethers } from 'ethers';
 import { walletConnectService } from '../../wallet/walletConnectInstance';
 import ClaimVotingModuleAbi from './abis/ClaimVotingModule.json';
+import DaoKernelAbi from './abis/DaoKernel.json';
+import { AMOY_RPC_URL } from '../utils/rpc';
 import { Alert, Linking } from 'react-native';
 const POLYSCAN_PREFIX = 'https://amoy.polygonscan.com';
 
@@ -11,7 +13,7 @@ export interface Claim {
   title: string;
   description: string;
   amount: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
   createdAt: {
     _seconds: number;
     _nanoseconds: number;
@@ -176,6 +178,80 @@ export const getClaim = async (daoAddress: string, claimId: string) => {
 };
 
 // Vote on a claim
+export const payoutClaim = async (daoAddress: string, claimId: string) => {
+  try {
+    // 1. Check if WalletConnect is connected
+    if (!walletConnectService.isConnected()) {
+      throw new Error('Please connect your wallet first');
+    }
+
+    // 2. Get the treasury address from the DAO
+    const provider = new ethers.JsonRpcProvider(AMOY_RPC_URL);
+    const daoContract = new ethers.Contract(daoAddress, DaoKernelAbi.abi, provider);
+    const treasuryAddress = await daoContract.getTreasuryModule();
+    
+    if (!treasuryAddress || treasuryAddress === ethers.ZeroAddress) {
+      throw new Error('Treasury module not found for this DAO');
+    }
+
+    // 3. Prepare the transaction
+    const tx = {
+      to: daoAddress,
+      data: new ethers.Interface(ClaimVotingModuleAbi.abi).encodeFunctionData('payoutClaim', [
+        claimId,
+        treasuryAddress
+      ])
+    };
+
+    // 3. Send the transaction (this will trigger the MetaMask deeplink)
+    console.log('Paying out claim:', claimId);
+    
+    // Try to open MetaMask app
+    try {
+      await Linking.openURL('metamask://');
+    } catch (e) {
+      console.log('Could not open MetaMask:', e);
+    }
+    
+    const txHash = await walletConnectService.sendTransaction(tx) as string;
+    console.log('Transaction sent:', txHash);
+
+    // 4. Get JWT token
+    const idToken = await AsyncStorage.getItem('idToken');
+    if (!idToken) throw new Error('Not authenticated');
+
+    // 5. Update backend
+    const res = await fetch(`${API_BASE_URL}/api/daos/${daoAddress}/claims/${claimId}/payout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
+      },
+      body: JSON.stringify({ txHash }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Failed to payout claim');
+    }
+
+    // 6. Show success alert with Polyscan link
+    Alert.alert(
+      'Payout Successful',
+      `Claim has been paid out successfully!\n\nTx Hash: ${txHash}`,
+      [
+        { text: 'View on Polyscan', onPress: () => Linking.openURL(`${POLYSCAN_PREFIX}/tx/${txHash}`) },
+        { text: 'OK' },
+      ]
+    );
+
+    return await res.json();
+  } catch (err: any) {
+    console.error('Error paying out claim:', err);
+    throw err;
+  }
+};
+
 export const voteOnClaim = async (daoAddress: string, claimId: string, approve: boolean) => {
   try {
     // 1. Check if WalletConnect is connected
