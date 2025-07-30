@@ -13,6 +13,7 @@ import { getContractAddress } from '../../utils/contractAddresses';
 import Icon from 'react-native-vector-icons/Ionicons';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import DatePicker from 'react-native-date-picker';
+import { startRedirectFlow } from '../../services/gocardlessApi';
 
 interface Profile {
   uid: string;
@@ -297,6 +298,22 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
     Alert.alert('Coming Soon', 'Withdraw functionality will be available soon!');
   };
 
+  const handleLinkGoCardless = async () => {
+    try {
+      const flowData = await startRedirectFlow();
+      // Open the GoCardless redirect URL in browser
+      await Linking.openURL(flowData.redirect_url);
+      Alert.alert(
+        'GoCardless Setup',
+        'Complete the direct debit setup in your browser, then return to the app. Your mandate will be automatically linked.',
+        [{ text: 'OK' }]
+      );
+    } catch (error: any) {
+      console.error('Error starting GoCardless flow:', error);
+      Alert.alert('Error', error.message || 'Failed to start GoCardless linking');
+    }
+  };
+
   // Floating label input for modern look
   const FloatingInput = ({ label, value, onChangeText, ...props }: any) => {
     const [focused, setFocused] = useState(false);
@@ -549,7 +566,7 @@ export default function ProfileScreen({ onLogout }: ProfileScreenProps) {
             <View style={styles.mandateRow}>
               <Icon name="close-circle" size={18} color="#ef4444" style={{ marginRight: 8 }} />
               <Text style={styles.mandateText}>Not Linked</Text>
-              <TouchableOpacity style={styles.linkBtn} onPress={() => Alert.alert('Link GoCardless', 'Linking coming soon!')}>
+              <TouchableOpacity style={styles.linkBtn} onPress={handleLinkGoCardless}>
                 <Text style={styles.linkBtnText}>Link Now</Text>
               </TouchableOpacity>
             </View>
