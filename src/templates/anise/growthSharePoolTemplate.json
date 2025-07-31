@@ -1,0 +1,21 @@
+{
+  "templateId": "growth-share-pool-v1",
+  "name": "Growth Share Pool Template",
+  "description": "For companies collaborating on shared revenue, resources, or growth initiatives. Partners can vote on business decisions, share expenses, sign legal agreements, and manage joint funds. Ideal for businesses looking to pool resources and share in mutual success.",
+  "modules": [
+    "MemberModule",
+    "ProposalVotingModule",
+    "ClaimVotingModule", 
+    "TreasuryModule",
+    "DocumentSigningModule",
+    "AnnouncementModule"
+  ],
+  "useCases": [
+    "Revenue sharing partnerships",
+    "Joint marketing alliances",
+    "Shared R&D",
+    "Co-manufacturing",
+    "Distribution networks"
+  ],
+  "moduleCount": 6
+} 

@@ -1,0 +1,15 @@
+{
+  "templateId": "startup-incubator-v1",
+  "name": "Startup Incubator Template",
+  "description": "For groups funding and mentoring early-stage startups. Investors and mentors can vote on funding decisions, track startup milestones, schedule demo days and mentor sessions, sign investment agreements, and manage investment funds. Perfect for accelerators and incubators supporting startup growth.",
+  "modules": [
+    "MemberModule",
+    "ProposalVotingModule",
+    "ClaimVotingModule",
+    "TreasuryModule",
+    "TaskManagementModule",
+    "CalendarModule",
+    "DocumentSigningModule",
+    "AnnouncementModule"
+  ]
+} 

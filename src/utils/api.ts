@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = "https://fee25407bae7.ngrok-free.app";
+export const API_BASE_URL = "https://10c154862ec9.ngrok-free.app";
 
 export async function getAuthHeaders() {
   const idToken = await AsyncStorage.getItem('idToken');
