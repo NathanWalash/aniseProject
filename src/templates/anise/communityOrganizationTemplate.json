@@ -1,0 +1,13 @@
+{
+  "templateId": "community-organization-v1",
+  "name": "Community Organization Template",
+  "description": "For non-financial community groups and organizations. Members can vote on organizational decisions, manage tasks and projects, schedule events, sign agreements, and communicate updates. Perfect for community groups that don't involve money but need structure and coordination.",
+  "modules": [
+    "MemberModule",
+    "ProposalVotingModule",
+    "TaskManagementModule",
+    "CalendarModule",
+    "DocumentSigningModule",
+    "AnnouncementModule"
+  ]
+} 

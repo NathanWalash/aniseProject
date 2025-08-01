@@ -1,0 +1,13 @@
+{
+  "templateId": "community-investment-v1",
+  "name": "Community Investment Template",
+  "description": "For communities pooling resources for local investments and projects. Members can vote on investment opportunities, manage shared funds, schedule community events, and track project progress. Perfect for neighborhoods and communities wanting to invest in local development.",
+  "modules": [
+    "MemberModule",
+    "ProposalVotingModule",
+    "ClaimVotingModule",
+    "TreasuryModule", 
+    "CalendarModule",
+    "AnnouncementModule"
+  ]
+} 

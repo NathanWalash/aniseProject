@@ -1,0 +1,22 @@
+{
+  "templateId": "creative-collective-v1",
+  "name": "Creative Collective Template",
+  "description": "For creative professionals collaborating on projects and sharing resources. Members can vote on creative direction, manage project tasks, schedule collaboration sessions, and share expenses. Ideal for artists, content creators, and creative teams working together.",
+  "modules": [
+    "MemberModule",
+    "ProposalVotingModule",
+    "ClaimVotingModule",
+    "TreasuryModule",
+    "TaskManagementModule",
+    "CalendarModule",
+    "AnnouncementModule"
+  ],
+  "useCases": [
+    "Art collectives",
+    "Podcast networks",
+    "Content creator groups",
+    "Design studios",
+    "Music production teams"
+  ],
+  "moduleCount": 7
+} 
