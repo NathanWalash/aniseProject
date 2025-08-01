@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../../utils/api';
 import { JoinRequestsModal } from './JoinRequestsModal';
 import { CreateClaimModal } from './claims/CreateClaimModal';
 import { CreateProposalModal } from './proposals/CreateProposalModal';
+import { CreateAnnouncementModal } from './announcements/CreateAnnouncementModal';
 import { getTreasuryBalance } from '../../services/blockchainService';
 import { getJoinRequests } from '../../services/memberApi';
 import { listClaims } from '../../services/claimApi';
@@ -55,6 +56,7 @@ const generateToolbarButtons = (
     anise: Anise;
     setShowCreateProposal: (show: boolean) => void;
     setShowCreateClaim: (show: boolean) => void;
+    setShowCreateAnnouncement: (show: boolean) => void;
   }
 ) => {
   const sections: React.ReactElement[] = [];
@@ -69,13 +71,15 @@ const generateToolbarButtons = (
             key="announcements"
             icon="megaphone" 
             label="View Announcements" 
-            onPress={() => console.log('Announcements - Coming Soon')}
+            onPress={() => context.navigation.navigate('AnnouncementsList', { 
+              daoAddress: context.anise.id
+            })}
           />
           <ActionButton 
             key="new-announcement"
             icon="add" 
             label="New Announcement" 
-            onPress={() => console.log('New Announcement - Coming Soon')}
+            onPress={() => context.setShowCreateAnnouncement(true)}
           />
         </View>
       </View>
@@ -401,6 +405,7 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
   const [showJoinRequests, setShowJoinRequests] = useState(false);
   const [showCreateClaim, setShowCreateClaim] = useState(false);
   const [showCreateProposal, setShowCreateProposal] = useState(false);
+  const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingJoinRequests, setPendingJoinRequests] = useState<number>(0);
@@ -560,7 +565,8 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
             navigation,
             anise,
             setShowCreateProposal,
-            setShowCreateClaim
+            setShowCreateClaim,
+            setShowCreateAnnouncement
           })}
 
         </View>
@@ -604,6 +610,13 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
       <CreateProposalModal
         visible={showCreateProposal}
         onClose={() => setShowCreateProposal(false)}
+        daoAddress={anise.id}
+      />
+
+      {/* Create Announcement Modal */}
+      <CreateAnnouncementModal
+        visible={showCreateAnnouncement}
+        onClose={() => setShowCreateAnnouncement(false)}
         daoAddress={anise.id}
       />
     </SafeAreaView>
