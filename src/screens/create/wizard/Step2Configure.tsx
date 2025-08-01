@@ -69,35 +69,7 @@ export default function Step2Configure({ template, config, setConfig, onNext, on
     return touched[param.name] && (!localConfig[param.name] || localConfig[param.name].toString().trim() === '');
   };
 
-  // Floating label input
-  const FloatingInput = ({ label, value, onChangeText, multiline, invalid, ...props }: any) => {
-    const [focused, setFocused] = useState(false);
-    const [localValue, setLocalValue] = useState(value ?? '');
-    React.useEffect(() => {
-      // If parent value changes (e.g., reset), update local
-      setLocalValue(value ?? '');
-    }, [value]);
-    const showFloating = focused || (localValue && localValue.length > 0);
-    return (
-      <View style={styles.floatingInputContainer}>
-        <Text style={[styles.floatingLabel, showFloating && styles.floatingLabelActive]} pointerEvents="none">{label}</Text>
-        <TextInput
-          value={localValue}
-          onChangeText={setLocalValue}
-          onFocus={() => setFocused(true)}
-          onEndEditing={() => {
-            setFocused(false);
-            if (onChangeText) onChangeText(localValue);
-          }}
-          multiline={multiline}
-          numberOfLines={multiline ? 4 : 1}
-          style={[styles.floatingInput, invalid && styles.inputInvalid, multiline && { minHeight: 80 }]}
-          {...props}
-        />
-      </View>
-    );
-  };
-
+  
   // Segmented control for visibility
   const VisibilitySegment = ({ value, onChange }: { value: boolean, onChange: (v: boolean) => void }) => (
     <View style={styles.segmentContainer}>
