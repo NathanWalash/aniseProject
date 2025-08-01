@@ -15,6 +15,7 @@ import AniseDetailsScreen from './screens/myanises/AniseDetailsScreen';
 import { ClaimsListScreen } from './screens/myanises/claims/ClaimsListScreen';
 import { ProposalsListScreen } from './screens/myanises/proposals/ProposalsListScreen';
 import { AnnouncementsListScreen } from './screens/myanises/announcements/AnnouncementsListScreen';
+import { TasksKanbanScreen } from './screens/myanises/tasks/TasksKanbanScreen';
 import NotificationsScreen from './screens/notifications/NotificationsScreen';
 import ProfileScreen from './screens/profile/ProfileScreen';
 import DebugScreen from './screens/debug/DebugScreen';
@@ -71,6 +72,12 @@ function MyAnisesStackScreen({ user }: { user: any }) {
         options={{ headerShown: false }}
       >
         {(props: ScreenProps) => <AnnouncementsListScreen {...props} />}
+      </MyAnisesStack.Screen>
+      <MyAnisesStack.Screen 
+        name="TasksKanban" 
+        options={{ headerShown: false }}
+      >
+        {(props: ScreenProps) => <TasksKanbanScreen {...props} />}
       </MyAnisesStack.Screen>
     </MyAnisesStack.Navigator>
   );
