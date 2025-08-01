@@ -1,11 +1,17 @@
-import ClaimsDAOTemplate from './ClaimsDAOTemplate.json';
-import QuadraticFundingDAOTemplate from './QuadraticFundingDAOTemplate.json';
-import P2PInsuranceTemplate from './P2PInsuranceTemplate.json';
-import ComprehensiveDAOTemplate from './ComprehensiveDAOTemplate.json';
+import P2PInsuranceTemplate from './p2pInsuranceTemplate copy.json';
+import GrowthSharePoolTemplate from './growthSharePoolTemplate.json';
+import CommunityInvestmentTemplate from './communityInvestmentTemplate.json';
+import CreativeCollectiveTemplate from './creativeCollectiveTemplate.json';
+import StartupIncubatorTemplate from './startupIncubatorTemplate.json';
+import BusinessCooperativeTemplate from './businessCooperativeTemplate.json';
+import CommunityOrganizationTemplate from './communityOrganizationTemplate.json';
 
 export default [
-  ClaimsDAOTemplate,
-  QuadraticFundingDAOTemplate,
   P2PInsuranceTemplate,
-  ComprehensiveDAOTemplate,
+  GrowthSharePoolTemplate,
+  CommunityInvestmentTemplate,
+  CreativeCollectiveTemplate,
+  StartupIncubatorTemplate,
+  BusinessCooperativeTemplate,
+  CommunityOrganizationTemplate,
 ]; 

@@ -7,6 +7,8 @@ import { API_BASE_URL } from '../../utils/api';
 import { JoinRequestsModal } from './JoinRequestsModal';
 import { CreateClaimModal } from './claims/CreateClaimModal';
 import { CreateProposalModal } from './proposals/CreateProposalModal';
+import { CreateAnnouncementModal } from './announcements/CreateAnnouncementModal';
+import { CreateTaskModal } from './tasks/CreateTaskModal';
 import { getTreasuryBalance } from '../../services/blockchainService';
 import { getJoinRequests } from '../../services/memberApi';
 import { listClaims } from '../../services/claimApi';
@@ -23,10 +25,15 @@ interface ActionButtonProps {
   label: string;
   onPress: () => void;
   badge?: string | number;
+  isAdmin?: boolean;
 }
 
-const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress, badge }) => (
-  <TouchableOpacity style={styles.actionButton} onPress={onPress}>
+const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress, badge, isAdmin = false }) => (
+  <TouchableOpacity 
+    style={[styles.actionButton, isAdmin && styles.adminActionButton]} 
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
     <View style={styles.iconContainer}>
       <Icon name={icon} size={24} color="#2563eb" />
       {badge && (
@@ -38,6 +45,179 @@ const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress, badge
     <Text style={styles.actionLabel}>{label}</Text>
   </TouchableOpacity>
 );
+
+// Dynamic toolbar generation based on available modules
+const generateToolbarButtons = (
+  modules: any, 
+  isAdmin: boolean, 
+  context: {
+    pendingProposals: number;
+    pendingClaims: number;
+    navigation: any;
+    anise: Anise;
+    setShowCreateProposal: (show: boolean) => void;
+    setShowCreateClaim: (show: boolean) => void;
+    setShowCreateAnnouncement: (show: boolean) => void;
+    setShowCreateTask: (show: boolean) => void;
+  }
+) => {
+  const sections: React.ReactElement[] = [];
+  
+  // 1. Announcements Section (First)
+  if (modules.AnnouncementModule) {
+    sections.push(
+      <View key="announcements-section" style={styles.moduleSection}>
+        <Text style={styles.moduleTitle}>Announcements</Text>
+        <View style={styles.moduleButtonGrid}>
+          <ActionButton 
+            key="announcements"
+            icon="megaphone" 
+            label="View Announcements" 
+            onPress={() => context.navigation.navigate('AnnouncementsList', { 
+              daoAddress: context.anise.id
+            })}
+          />
+          <ActionButton 
+            key="new-announcement"
+            icon="add" 
+            label="New Announcement" 
+            onPress={() => context.setShowCreateAnnouncement(true)}
+          />
+        </View>
+      </View>
+    );
+  }
+  
+  // 2. Proposals Section
+  if (modules.ProposalVotingModule) {
+    sections.push(
+      <View key="proposals-section" style={styles.moduleSection}>
+        <Text style={styles.moduleTitle}>Proposals</Text>
+        <View style={styles.moduleButtonGrid}>
+          <ActionButton 
+            key="proposals"
+            icon="document-text" 
+            label="View Proposals" 
+            onPress={() => context.navigation.navigate('ProposalsList', { 
+              daoAddress: context.anise.id,
+              proposalThreshold: modules.ProposalVotingModule?.config?.approvalThreshold || 51
+            })}
+            badge={context.pendingProposals > 0 ? context.pendingProposals : undefined}
+          />
+          <ActionButton 
+            key="new-proposal"
+            icon="create" 
+            label="New Proposal" 
+            onPress={() => context.setShowCreateProposal(true)}
+          />
+        </View>
+      </View>
+    );
+  }
+  
+  // 3. Claims Section
+  if (modules.ClaimVotingModule) {
+    sections.push(
+      <View key="claims-section" style={styles.moduleSection}>
+        <Text style={styles.moduleTitle}>Claims</Text>
+        <View style={styles.moduleButtonGrid}>
+          <ActionButton 
+            key="claims"
+            icon="cash" 
+            label="View Claims" 
+            onPress={() => context.navigation.navigate('ClaimsList', { 
+              daoAddress: context.anise.id,
+              claimThreshold: modules.ClaimVotingModule?.config?.approvalThreshold || 51
+            })}
+            badge={context.pendingClaims > 0 ? context.pendingClaims : undefined}
+          />
+          <ActionButton 
+            key="new-claim"
+            icon="add-circle" 
+            label="Submit Claim" 
+            onPress={() => context.setShowCreateClaim(true)}
+          />
+        </View>
+      </View>
+    );
+  }
+  
+  // 4. Tasks Section
+  if (modules.TaskManagementModule) {
+    sections.push(
+      <View key="tasks-section" style={styles.moduleSection}>
+        <Text style={styles.moduleTitle}>Tasks</Text>
+        <View style={styles.moduleButtonGrid}>
+          <ActionButton 
+            key="tasks"
+            icon="list" 
+            label="View Tasks" 
+            onPress={() => context.navigation.navigate('TasksKanban', { 
+              daoAddress: context.anise.id
+            })}
+          />
+          <ActionButton 
+            key="new-task"
+            icon="add" 
+            label="New Task" 
+            onPress={() => context.setShowCreateTask(true)}
+          />
+        </View>
+      </View>
+    );
+  }
+  
+  // 5. Calendar Section
+  if (modules.CalendarModule) {
+    sections.push(
+      <View key="calendar-section" style={styles.moduleSection}>
+        <Text style={styles.moduleTitle}>Calendar</Text>
+        <View style={styles.moduleButtonGrid}>
+          <ActionButton 
+            key="calendar"
+            icon="calendar" 
+            label="View Events" 
+            onPress={() => console.log('Calendar - Coming Soon')}
+          />
+          <ActionButton 
+            key="new-event"
+            icon="add" 
+            label="New Event" 
+            onPress={() => console.log('New Event - Coming Soon')}
+          />
+        </View>
+      </View>
+    );
+  }
+  
+  // 6. Documents Section
+  if (modules.DocumentSigningModule) {
+    sections.push(
+      <View key="documents-section" style={styles.moduleSection}>
+        <Text style={styles.moduleTitle}>Documents</Text>
+        <View style={styles.moduleButtonGrid}>
+          <ActionButton 
+            key="documents"
+            icon="document" 
+            label="View Documents" 
+            onPress={() => console.log('Documents - Coming Soon')}
+          />
+          <ActionButton 
+            key="new-document"
+            icon="add" 
+            label="New Document" 
+            onPress={() => console.log('New Document - Coming Soon')}
+          />
+        </View>
+      </View>
+    );
+  }
+  
+  // No general section - members will be handled differently
+  return sections;
+  
+  return sections;
+};
 
 const InfoModal: React.FC<{
   visible: boolean;
@@ -229,6 +409,8 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
   const [showJoinRequests, setShowJoinRequests] = useState(false);
   const [showCreateClaim, setShowCreateClaim] = useState(false);
   const [showCreateProposal, setShowCreateProposal] = useState(false);
+  const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingJoinRequests, setPendingJoinRequests] = useState<number>(0);
@@ -339,10 +521,14 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
         <Text style={styles.subtitle}>{anise.description}</Text>
         
         <View style={styles.statsRow}>
-          <View style={styles.statItem}>
+          <TouchableOpacity 
+            style={styles.memberButton}
+            onPress={() => console.log('View Members - Coming Soon')}
+            activeOpacity={0.7}
+          >
             <Icon name="people" size={20} color="#2563eb" />
             <Text style={styles.statText}>{memberCount} Members</Text>
-          </View>
+          </TouchableOpacity>
           <View style={styles.statItem}>
             <Icon name="shield" size={20} color="#2563eb" />
             <Text style={styles.statText}>{userRole}</Text>
@@ -358,65 +544,37 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
         {isAdmin && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Admin Controls</Text>
-            <View style={styles.buttonGrid}>
+            <View style={styles.adminButtonGrid}>
               <ActionButton 
                 icon="people" 
                 label="Join Requests" 
                 onPress={() => setShowJoinRequests(true)}
                 badge={pendingJoinRequests > 0 ? pendingJoinRequests : undefined}
+                isAdmin={true}
               />
               <ActionButton 
                 icon="shield" 
                 label="Manage Members" 
                 onPress={() => console.log('Manage Members')}
+                isAdmin={true}
               />
             </View>
           </View>
         )}
 
-        {/* Main Toolbar */}
+        {/* Dynamic Toolbar */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Toolbar</Text>
-          <View style={styles.buttonGrid}>
-            <ActionButton 
-              icon="document-text" 
-              label="Proposals" 
-              onPress={() => navigation.navigate('ProposalsList', { 
-                daoAddress: anise.id,
-                proposalThreshold: anise.modules?.ProposalVotingModule?.config?.approvalThreshold || 51
-              })}
-              badge={pendingProposals > 0 ? pendingProposals : undefined}
-            />
-            <ActionButton 
-              icon="cash" 
-              label="Claims" 
-              onPress={() => navigation.navigate('ClaimsList', { 
-                daoAddress: anise.id,
-                claimThreshold: anise.modules?.ClaimVotingModule?.config?.approvalThreshold || 51
-              })}
-              badge={pendingClaims > 0 ? pendingClaims : undefined}
-            />
-            <ActionButton 
-              icon="list" 
-              label="Transactions" 
-              onPress={() => console.log('Transactions')}
-            />
-            <ActionButton 
-              icon="create" 
-              label="New Proposal" 
-              onPress={() => setShowCreateProposal(true)}
-            />
-            <ActionButton 
-              icon="add-circle" 
-              label="Submit Claim" 
-              onPress={() => setShowCreateClaim(true)}
-            />
-            <ActionButton 
-              icon="people" 
-              label="View Members" 
-              onPress={() => console.log('View Members')}
-            />
-          </View>
+          {generateToolbarButtons(anise.modules || {}, isAdmin, {
+            pendingProposals,
+            pendingClaims,
+            navigation,
+            anise,
+            setShowCreateProposal,
+            setShowCreateClaim,
+            setShowCreateAnnouncement,
+            setShowCreateTask
+          })}
+
         </View>
       </ScrollView>
 
@@ -458,6 +616,20 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
       <CreateProposalModal
         visible={showCreateProposal}
         onClose={() => setShowCreateProposal(false)}
+        daoAddress={anise.id}
+      />
+
+      {/* Create Announcement Modal */}
+      <CreateAnnouncementModal
+        visible={showCreateAnnouncement}
+        onClose={() => setShowCreateAnnouncement(false)}
+        daoAddress={anise.id}
+      />
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        visible={showCreateTask}
+        onClose={() => setShowCreateTask(false)}
         daoAddress={anise.id}
       />
     </SafeAreaView>
@@ -538,16 +710,20 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: '#111827'
   },
-  buttonGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    justifyContent: 'space-between'
-  },
+
   actionButton: {
-    width: '30%',
+    flex: 1,
     alignItems: 'center',
-    padding: 12
+    padding: 12,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
   },
   iconContainer: {
     position: 'relative',
@@ -673,6 +849,46 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
     borderRadius: 4,
   },
+
+  moduleSection: {
+    marginBottom: 20
+  },
+  moduleTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 12,
+    paddingHorizontal: 4
+  },
+  memberButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    padding: 8
+  },
+  adminButtonGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between'
+  },
+  adminActionButton: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1
+  },
+  moduleButtonGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between'
+  }
 });
 
 export default AniseDetailsScreen; 

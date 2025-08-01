@@ -1,0 +1,12 @@
+{
+  "templateId": "p2p-insurance-v1",
+  "name": "P2P Insurance Template",
+  "description": "For groups creating their own insurance pools and coverage. Members can vote on coverage policies, submit claims, and manage shared insurance funds. Perfect for communities wanting to self-insure rather than rely on traditional insurance companies.",
+  "modules": [
+    "MemberModule",
+    "ProposalVotingModule", 
+    "ClaimVotingModule",
+    "TreasuryModule",
+    "AnnouncementModule"
+  ]
+} 

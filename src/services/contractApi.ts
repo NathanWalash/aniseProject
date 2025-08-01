@@ -25,6 +25,10 @@ import MemberModuleAbiJson from "./abis/MemberModule.json";
 import ProposalVotingModuleAbiJson from "./abis/ProposalVotingModule.json";
 import ClaimVotingModuleAbiJson from "./abis/ClaimVotingModule.json";
 import TreasuryModuleAbiJson from "./abis/TreasuryModule.json";
+import TaskManagementModuleAbiJson from "./abis/TaskManagementModule.json";
+import CalendarModuleAbiJson from "./abis/CalendarModule.json";
+import DocumentSigningModuleAbiJson from "./abis/DocumentSigningModule.json";
+import AnnouncementModuleAbiJson from "./abis/AnnouncementModule.json";
 import ModuleRegistryAbiJson from "./abis/ModuleRegistry.json";
 import TokenAbiJson from "./abis/Token.json";
 const DaoFactoryAbi = DaoFactoryAbiJson.abi || DaoFactoryAbiJson;
@@ -33,6 +37,10 @@ const MemberModuleAbi = MemberModuleAbiJson.abi || MemberModuleAbiJson;
 const ProposalVotingModuleAbi = ProposalVotingModuleAbiJson.abi || ProposalVotingModuleAbiJson;
 const ClaimVotingModuleAbi = ClaimVotingModuleAbiJson.abi || ClaimVotingModuleAbiJson;
 const TreasuryModuleAbi = TreasuryModuleAbiJson.abi || TreasuryModuleAbiJson;
+const TaskManagementModuleAbi = TaskManagementModuleAbiJson.abi || TaskManagementModuleAbiJson;
+const CalendarModuleAbi = CalendarModuleAbiJson.abi || CalendarModuleAbiJson;
+const DocumentSigningModuleAbi = DocumentSigningModuleAbiJson.abi || DocumentSigningModuleAbiJson;
+const AnnouncementModuleAbi = AnnouncementModuleAbiJson.abi || AnnouncementModuleAbiJson;
 const ModuleRegistryAbi = ModuleRegistryAbiJson.abi || ModuleRegistryAbiJson;
 const TokenAbi = TokenAbiJson.abi || TokenAbiJson;
 
@@ -40,7 +48,7 @@ const TokenAbi = TokenAbiJson.abi || TokenAbiJson;
  * List all DAOs (paginated if needed)
  */
 export async function getAllDaos(provider: ethers.Provider, network: "amoy" = "amoy") {
-  const address = getContractAddress("DaoFactory", network);
+  const address = getContractAddress("DaoFactory");
   const contract = new ethers.Contract(address, DaoFactoryAbi, provider);
   const count = await contract.getDaoCount();
   const daos = [];
@@ -55,7 +63,7 @@ export async function getAllDaos(provider: ethers.Provider, network: "amoy" = "a
  * Get metadata/config for a specific DAO
  */
 export async function getDaoMetadata(daoAddress: string, provider: ethers.Provider, network: "amoy" = "amoy") {
-  const factoryAddress = getContractAddress("DaoFactory", network);
+  const factoryAddress = getContractAddress("DaoFactory");
   const factoryContract = new ethers.Contract(factoryAddress, DaoFactoryAbi, provider);
   try {
     const info = await factoryContract.getDaoInfoByAddress(daoAddress);
@@ -83,7 +91,7 @@ export async function getDaoModules(daoAddress: string, provider: ethers.Provide
  * List public DAOs (paginated)
  */
 export async function getPublicDaos(offset: number, limit: number, provider: ethers.Provider, network: "amoy" = "amoy") {
-  const address = getContractAddress("DaoFactory", network);
+  const address = getContractAddress("DaoFactory");
   const contract = new ethers.Contract(address, DaoFactoryAbi, provider);
   const [daos, total] = await contract.getPublicDaosPaginated(offset, limit);
   return { daos, total };
@@ -93,7 +101,7 @@ export async function getPublicDaos(offset: number, limit: number, provider: eth
  * List DAOs by template (paginated)
  */
 export async function getDaosByTemplate(templateId: string, offset: number, limit: number, provider: ethers.Provider, network: "amoy" = "amoy") {
-  const address = getContractAddress("DaoFactory", network);
+  const address = getContractAddress("DaoFactory");
   const contract = new ethers.Contract(address, DaoFactoryAbi, provider);
   const [daos, total] = await contract.getDaosByTemplatePaginated(templateId, offset, limit);
   return { daos, total };
@@ -103,7 +111,7 @@ export async function getDaosByTemplate(templateId: string, offset: number, limi
  * List DAOs by creator (paginated)
  */
 export async function getDaosByCreator(creatorAddress: string, offset: number, limit: number, provider: ethers.Provider, network: "amoy" = "amoy") {
-  const address = getContractAddress("DaoFactory", network);
+  const address = getContractAddress("DaoFactory");
   const contract = new ethers.Contract(address, DaoFactoryAbi, provider);
   const [daos, total] = await contract.getDaosByCreatorPaginated(creatorAddress, offset, limit);
   return { daos, total };
@@ -267,4 +275,89 @@ export async function getDaoOwner(daoAddress: string, provider: ethers.Provider)
 export async function getTreasuryModuleAddress(daoAddress: string, provider: ethers.Provider) {
   const contract = new ethers.Contract(daoAddress, DaoKernelAbi, provider);
   return await contract.getTreasuryModule();
+}
+
+// ===== NEW MODULE API FUNCTIONS =====
+
+/**
+ * Get tasks from TaskManagementModule (paginated)
+ */
+export async function getTasks(taskModuleAddress: string, offset: number, limit: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(taskModuleAddress, TaskManagementModuleAbi, provider);
+  const [tasks, total] = await contract.getTasksPaginated(offset, limit);
+  return { tasks, total };
+}
+
+/**
+ * Get total number of tasks
+ */
+export async function getTaskCount(taskModuleAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(taskModuleAddress, TaskManagementModuleAbi, provider);
+  return await contract.getTaskCount();
+}
+
+/**
+ * Get details for a specific task
+ */
+export async function getTaskDetails(taskModuleAddress: string, taskId: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(taskModuleAddress, TaskManagementModuleAbi, provider);
+  return await contract.getTask(taskId);
+}
+
+/**
+ * Get upcoming calendar events
+ */
+export async function getCalendarEvents(calendarModuleAddress: string, limit: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(calendarModuleAddress, CalendarModuleAbi, provider);
+  return await contract.getUpcomingEvents(limit);
+}
+
+/**
+ * Get total number of calendar events
+ */
+export async function getCalendarEventCount(calendarModuleAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(calendarModuleAddress, CalendarModuleAbi, provider);
+  return await contract.getEventCount();
+}
+
+/**
+ * Get document details from DocumentSigningModule
+ */
+export async function getDocuments(documentModuleAddress: string, offset: number, limit: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(documentModuleAddress, DocumentSigningModuleAbi, provider);
+  const [documents, total] = await contract.getAllDocumentsPaginated(offset, limit);
+  return { documents, total };
+}
+
+/**
+ * Get total number of documents
+ */
+export async function getDocumentCount(documentModuleAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(documentModuleAddress, DocumentSigningModuleAbi, provider);
+  return await contract.getDocumentCount();
+}
+
+/**
+ * Get document details by ID
+ */
+export async function getDocumentDetails(documentModuleAddress: string, documentId: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(documentModuleAddress, DocumentSigningModuleAbi, provider);
+  return await contract.getDocument(documentId);
+}
+
+/**
+ * Get active announcements from AnnouncementModule (paginated)
+ */
+export async function getAnnouncements(announcementModuleAddress: string, offset: number, limit: number, provider: ethers.Provider) {
+  const contract = new ethers.Contract(announcementModuleAddress, AnnouncementModuleAbi, provider);
+  const [announcements, total] = await contract.getActiveAnnouncementsPaginated(offset, limit);
+  return { announcements, total };
+}
+
+/**
+ * Get total number of active announcements
+ */
+export async function getAnnouncementCount(announcementModuleAddress: string, provider: ethers.Provider) {
+  const contract = new ethers.Contract(announcementModuleAddress, AnnouncementModuleAbi, provider);
+  return await contract.getActiveAnnouncementCount();
 } 

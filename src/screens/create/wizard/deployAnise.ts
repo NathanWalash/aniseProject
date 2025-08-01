@@ -54,6 +54,10 @@ export async function deployAnise(template: Template, config: Record<string, any
       if (m === 'ProposalVotingModule') return getContractAddress('ProposalLogic');
       if (m === 'ClaimVotingModule') return getContractAddress('ClaimLogic');
       if (m === 'TreasuryModule') return getContractAddress('TreasuryLogic');
+      if (m === 'TaskManagementModule') return getContractAddress('TaskManagementLogic');
+      if (m === 'CalendarModule') return getContractAddress('CalendarLogic');
+      if (m === 'DocumentSigningModule') return getContractAddress('DocumentSigningLogic');
+      if (m === 'AnnouncementModule') return getContractAddress('AnnouncementLogic');
       throw new Error('Unknown module: ' + m);
     });
     const initData = moduleKeys.map((m) => encodeInitData(m, config, signerAddress));

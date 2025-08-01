@@ -17,8 +17,8 @@ export default function Step1TemplateSelect({ onSelect, selectedTemplate, setSel
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const navigation = useNavigation() as any;
   const filtered = allTemplates.filter(t => {
-    const templateName = t.templateName || t.name || '';
-    const templateDescription = t.templateDescription || t.description || '';
+    const templateName = t.name || '';
+    const templateDescription = t.description || '';
     return (
       templateName.toLowerCase().includes(query.toLowerCase()) ||
       templateDescription.toLowerCase().includes(query.toLowerCase())
@@ -48,8 +48,8 @@ export default function Step1TemplateSelect({ onSelect, selectedTemplate, setSel
           ...t,
           initParamsSchema: [], // fallback since JSONs do not include this
         };
-        const templateName = template.templateName || template.name || '';
-        const templateDescription = template.templateDescription || template.description || '';
+        const templateName = template.name || '';
+        const templateDescription = template.description || '';
         const isExpanded = expandedId === template.templateId;
         const isSelected = selectedTemplate?.templateId === template.templateId;
         return (
@@ -58,7 +58,7 @@ export default function Step1TemplateSelect({ onSelect, selectedTemplate, setSel
             style={[
               styles.card,
               isSelected && styles.cardSelected,
-              { shadowOpacity: isSelected ? 0.18 : 0.08 },
+              { shadowOpacity: isSelected ? 0.15 : 0.06 },
             ]}
             accessible={true}
             accessibilityLabel={`Template card for ${templateName}${isSelected ? ', selected' : ''}`}
@@ -70,11 +70,17 @@ export default function Step1TemplateSelect({ onSelect, selectedTemplate, setSel
               accessibilityRole="button"
               accessibilityState={{ selected: isSelected }}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <Icon name="layers-outline" size={28} color={isSelected ? '#2563eb' : '#888'} style={{ marginRight: 12 }} />
-                <View style={{ flex: 1 }}>
+              <View style={styles.cardContent}>
+                <View style={[styles.iconContainer, isSelected && styles.iconContainerSelected]}>
+                  <Icon name="layers-outline" size={20} color={isSelected ? '#fff' : '#2563eb'} />
+                </View>
+                <View style={styles.textContainer}>
                   <Text style={styles.templateName}>{templateName}</Text>
-                  <Text style={styles.templateDescription} numberOfLines={isExpanded ? undefined : 2}>{templateDescription}</Text>
+                  {isExpanded && (
+                    <Text style={styles.templateDescription}>
+                      {templateDescription}
+                    </Text>
+                  )}
                 </View>
               </View>
               <TouchableOpacity
@@ -84,17 +90,24 @@ export default function Step1TemplateSelect({ onSelect, selectedTemplate, setSel
                 accessibilityRole="button"
                 accessibilityLabel={isExpanded ? 'Collapse details' : 'Expand details'}
               >
-                <Icon name={isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={24} color="#2563eb" />
+                <Icon name={isExpanded ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} color="#2563eb" />
               </TouchableOpacity>
             </TouchableOpacity>
             {isExpanded && (
               <View style={styles.cardExpandedContent}>
-                <Text style={styles.modulesTitle}>Modules:</Text>
+                <View style={styles.modulesHeader}>
+                  <Text style={styles.modulesTitle}>Modules ({template.modules.length})</Text>
+                  <View style={styles.moduleCountBadge}>
+                    <Text style={styles.moduleCountText}>{template.modules.length}</Text>
+                  </View>
+                </View>
                 <View style={styles.modulesList}>
-                  {template.modules.map(m => (
-                    <View key={m} style={styles.moduleBadge}>
-                      <Icon name="cube-outline" size={14} color="#2563eb" style={{ marginRight: 4 }} />
-                      <Text style={styles.moduleBadgeText}>{m}</Text>
+                  {template.modules.map((m, index) => (
+                    <View key={m} style={styles.moduleItem}>
+                      <View style={styles.moduleBadge}>
+                        <Icon name="cube-outline" size={16} color="#2563eb" style={styles.moduleIcon} />
+                        <Text style={styles.moduleBadgeText}>{m}</Text>
+                      </View>
                     </View>
                   ))}
                 </View>
@@ -137,127 +150,176 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    marginBottom: 18,
+    marginBottom: 20,
     paddingHorizontal: 16,
     marginHorizontal: 2,
     shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
   searchIcon: {
-    marginRight: 6,
+    marginRight: 8,
   },
   searchBar: {
     flex: 1,
-    height: 42,
+    height: 48,
     fontSize: 16,
     color: '#222',
     backgroundColor: 'transparent',
     borderWidth: 0,
   },
   card: {
-    marginBottom: 20,
-    borderRadius: 18,
+    marginBottom: 16,
+    borderRadius: 20,
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#f1f5f9',
     shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
     overflow: 'hidden',
     marginHorizontal: 2,
-    position: 'relative',
   },
   cardSelected: {
     borderColor: '#2563eb',
-    borderWidth: 3,
-    shadowOpacity: 0.18,
-    elevation: 4,
+    borderWidth: 2,
+    shadowOpacity: 0.15,
+    elevation: 6,
+    backgroundColor: '#fefefe',
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 18,
-    paddingBottom: 10,
+    padding: 16,
+    paddingBottom: 16,
     backgroundColor: 'transparent',
   },
+  cardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#f0f9ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  iconContainerSelected: {
+    backgroundColor: '#2563eb',
+  },
+  textContainer: {
+    flex: 1,
+    paddingRight: 8,
+  },
   templateName: {
-    fontSize: 19,
-    fontWeight: 'bold',
-    color: '#222',
-    marginBottom: 2,
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1e293b',
+    lineHeight: 22,
   },
   templateDescription: {
-    color: '#555',
-    fontSize: 15,
-    marginBottom: 2,
+    color: '#64748b',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
   },
   expandButton: {
-    marginLeft: 10,
-    padding: 4,
+    marginLeft: 8,
+    padding: 6,
+    borderRadius: 6,
+    backgroundColor: '#f8fafc',
   },
   cardExpandedContent: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: '#f3f4f6',
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
+    backgroundColor: '#f8fafc',
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+  },
+  modulesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    marginBottom: 16,
   },
   modulesTitle: {
-    fontWeight: 'bold',
-    marginTop: 8,
-    marginBottom: 6,
-    fontSize: 15,
-    color: '#2563eb',
+    fontWeight: '600',
+    fontSize: 16,
+    color: '#1e293b',
+  },
+  moduleCountBadge: {
+    backgroundColor: '#2563eb',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  moduleCountText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   modulesList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 10,
+    marginBottom: 16,
+  },
+  moduleItem: {
+    marginBottom: 8,
   },
   moduleBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e0e7ff',
-    borderRadius: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  moduleIcon: {
     marginRight: 8,
-    marginBottom: 6,
   },
   moduleBadgeText: {
-    color: '#2563eb',
-    fontSize: 13,
-    fontWeight: '600',
+    color: '#374151',
+    fontSize: 14,
+    fontWeight: '500',
   },
   exploreButton: {
-    marginTop: 18,
+    marginTop: 16,
     alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#2563eb',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.10,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
   exploreButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
     letterSpacing: 0.2,
   },
   emptyStateContainer: {
