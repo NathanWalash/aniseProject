@@ -8,6 +8,10 @@ import { JoinRequestsModal } from './JoinRequestsModal';
 import { CreateClaimModal } from './claims/CreateClaimModal';
 import { CreateProposalModal } from './proposals/CreateProposalModal';
 import { CreateAnnouncementModal } from './announcements/CreateAnnouncementModal';
+<<<<<<< HEAD
+=======
+import { CreateTaskModal } from './tasks/CreateTaskModal';
+>>>>>>> origin/main
 import { getTreasuryBalance } from '../../services/blockchainService';
 import { getJoinRequests } from '../../services/memberApi';
 import { listClaims } from '../../services/claimApi';
@@ -57,6 +61,10 @@ const generateToolbarButtons = (
     setShowCreateProposal: (show: boolean) => void;
     setShowCreateClaim: (show: boolean) => void;
     setShowCreateAnnouncement: (show: boolean) => void;
+<<<<<<< HEAD
+=======
+    setShowCreateTask: (show: boolean) => void;
+>>>>>>> origin/main
   }
 ) => {
   const sections: React.ReactElement[] = [];
@@ -150,13 +158,23 @@ const generateToolbarButtons = (
             key="tasks"
             icon="list" 
             label="View Tasks" 
+<<<<<<< HEAD
             onPress={() => console.log('Tasks - Coming Soon')}
+=======
+            onPress={() => context.navigation.navigate('TasksKanban', { 
+              daoAddress: context.anise.id
+            })}
+>>>>>>> origin/main
           />
           <ActionButton 
             key="new-task"
             icon="add" 
             label="New Task" 
+<<<<<<< HEAD
             onPress={() => console.log('New Task - Coming Soon')}
+=======
+            onPress={() => context.setShowCreateTask(true)}
+>>>>>>> origin/main
           />
         </View>
       </View>
@@ -406,6 +424,10 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
   const [showCreateClaim, setShowCreateClaim] = useState(false);
   const [showCreateProposal, setShowCreateProposal] = useState(false);
   const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
+<<<<<<< HEAD
+=======
+  const [showCreateTask, setShowCreateTask] = useState(false);
+>>>>>>> origin/main
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingJoinRequests, setPendingJoinRequests] = useState<number>(0);
@@ -566,7 +588,12 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
             anise,
             setShowCreateProposal,
             setShowCreateClaim,
+<<<<<<< HEAD
             setShowCreateAnnouncement
+=======
+            setShowCreateAnnouncement,
+            setShowCreateTask
+>>>>>>> origin/main
           })}
 
         </View>
@@ -619,6 +646,16 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
         onClose={() => setShowCreateAnnouncement(false)}
         daoAddress={anise.id}
       />
+<<<<<<< HEAD
+=======
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        visible={showCreateTask}
+        onClose={() => setShowCreateTask(false)}
+        daoAddress={anise.id}
+      />
+>>>>>>> origin/main
     </SafeAreaView>
   );
 };
