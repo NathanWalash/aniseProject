@@ -8,6 +8,7 @@ import { JoinRequestsModal } from './JoinRequestsModal';
 import { CreateClaimModal } from './claims/CreateClaimModal';
 import { CreateProposalModal } from './proposals/CreateProposalModal';
 import { CreateAnnouncementModal } from './announcements/CreateAnnouncementModal';
+import { CreateTaskModal } from './tasks/CreateTaskModal';
 import { getTreasuryBalance } from '../../services/blockchainService';
 import { getJoinRequests } from '../../services/memberApi';
 import { listClaims } from '../../services/claimApi';
@@ -57,6 +58,7 @@ const generateToolbarButtons = (
     setShowCreateProposal: (show: boolean) => void;
     setShowCreateClaim: (show: boolean) => void;
     setShowCreateAnnouncement: (show: boolean) => void;
+    setShowCreateTask: (show: boolean) => void;
   }
 ) => {
   const sections: React.ReactElement[] = [];
@@ -150,13 +152,15 @@ const generateToolbarButtons = (
             key="tasks"
             icon="list" 
             label="View Tasks" 
-            onPress={() => console.log('Tasks - Coming Soon')}
+            onPress={() => context.navigation.navigate('TasksKanban', { 
+              daoAddress: context.anise.id
+            })}
           />
           <ActionButton 
             key="new-task"
             icon="add" 
             label="New Task" 
-            onPress={() => console.log('New Task - Coming Soon')}
+            onPress={() => context.setShowCreateTask(true)}
           />
         </View>
       </View>
@@ -406,6 +410,7 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
   const [showCreateClaim, setShowCreateClaim] = useState(false);
   const [showCreateProposal, setShowCreateProposal] = useState(false);
   const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
+  const [showCreateTask, setShowCreateTask] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingJoinRequests, setPendingJoinRequests] = useState<number>(0);
@@ -566,7 +571,8 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
             anise,
             setShowCreateProposal,
             setShowCreateClaim,
-            setShowCreateAnnouncement
+            setShowCreateAnnouncement,
+            setShowCreateTask
           })}
 
         </View>
@@ -617,6 +623,13 @@ const AniseDetailsScreen: React.FC<AniseDetailsProps> = ({ route, navigation }) 
       <CreateAnnouncementModal
         visible={showCreateAnnouncement}
         onClose={() => setShowCreateAnnouncement(false)}
+        daoAddress={anise.id}
+      />
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        visible={showCreateTask}
+        onClose={() => setShowCreateTask(false)}
         daoAddress={anise.id}
       />
     </SafeAreaView>
