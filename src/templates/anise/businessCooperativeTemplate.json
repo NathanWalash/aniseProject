@@ -1,0 +1,15 @@
+{
+  "templateId": "business-cooperative-v1",
+  "name": "Business Cooperative Template",
+  "description": "For businesses collaborating on shared resources and opportunities. Members can vote on business decisions, track collaboration tasks, schedule meetings, sign partnership agreements, and manage shared expenses. Ideal for businesses wanting to pool resources and work together.",
+  "modules": [
+    "MemberModule",
+    "ProposalVotingModule",
+    "ClaimVotingModule",
+    "TreasuryModule",
+    "TaskManagementModule",
+    "CalendarModule",
+    "AnnouncementModule",
+    "DocumentSigningModule"
+  ]
+} 
