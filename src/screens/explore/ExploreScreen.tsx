@@ -20,6 +20,7 @@ import { API_BASE_URL } from '../../utils/api';
 import { Interface } from 'ethers';
 import { walletConnectService } from '../../../wallet/walletConnectInstance';
 import MemberModuleAbiJson from '../../services/abis/MemberModule.json';
+import AdvancedSearch, { SearchFilters } from '../../components/AdvancedSearch';
 const MemberModuleAbi = MemberModuleAbiJson.abi || MemberModuleAbiJson;
 
 // Add navigation type
@@ -223,6 +224,14 @@ export default function ExploreScreen() {
   const [selectedDao, setSelectedDao] = useState<PublicDAO | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [userWalletAddress, setUserWalletAddress] = useState<string | null>(null);
+  
+  // New search filters state
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    query: '',
+    sortBy: 'all',
+    memberCount: 'any',
+    privateKey: undefined,
+  });
 
   // Add effect to get user data including wallet address
   useEffect(() => {
@@ -250,11 +259,11 @@ export default function ExploreScreen() {
     getUserData();
   }, []);
 
-  // Add effect to reset and fetch when filter changes
+  // Add effect to reset and fetch when searchFilters change
   useEffect(() => {
-    setPage(1); // Reset page when filter changes
+    setPage(1); // Reset page when filters change
     fetchPublicDaos(true); // true means reset
-  }, [filter]);
+  }, [searchFilters]);
 
   // Update membership status check to use the correct wallet address
   const checkMembershipStatus = async (daoAddress: string, idToken: string) => {
@@ -362,7 +371,7 @@ export default function ExploreScreen() {
   // Update fetchPublicDaos to include membership status
   const fetchPublicDaos = async (reset: boolean = false) => {
     try {
-      console.log('Fetching public DAOs...', { filter, reset });
+      console.log('Fetching public DAOs...', { searchFilters, reset });
       const idToken = await AsyncStorage.getItem('idToken');
       if (!idToken) throw new Error('Not authenticated');
 
@@ -382,12 +391,14 @@ export default function ExploreScreen() {
       const params = new URLSearchParams({
         page: String(reset ? 1 : page),
         limit: '10',
-        ...(search && { search }),
-        ...(filter !== 'All' && { sort: filter.toLowerCase() })
+        ...(searchFilters.query && { search: searchFilters.query }),
+        ...(searchFilters.sortBy !== 'all' && { sortBy: searchFilters.sortBy }),
+        ...(searchFilters.memberCount !== 'any' && { memberCount: searchFilters.memberCount })
       });
 
       const url = `${API_BASE_URL}/api/daos?${params}`;
       console.log('Fetching from URL:', url);
+      console.log('Search filters being sent:', searchFilters);
 
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${idToken}` }
@@ -469,6 +480,21 @@ export default function ExploreScreen() {
   const handleSearch = () => {
     setPage(1);
     fetchPublicDaos(true);
+  };
+
+  const handleFiltersChange = (newFilters: SearchFilters) => {
+    console.log('Filters changed:', newFilters);
+    setSearchFilters(newFilters);
+    // Trigger search immediately when filters change
+    setTimeout(() => {
+      fetchPublicDaos(true);
+    }, 100);
+  };
+
+  const handlePrivateKeySubmit = (privateKey: string) => {
+    console.log('Private key submitted:', privateKey);
+    // Handle private key submission - you can implement this later
+    Alert.alert('Private Key', `Private key submitted: ${privateKey}`);
   };
 
   const handleRefresh = () => {
@@ -699,54 +725,14 @@ export default function ExploreScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Search and Private Join */}
-        <View style={styles.searchSection}>
-          <View style={styles.searchContainer}>
-            <Icon name="search" size={20} color="#6B7280" style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchInput, { color: '#000000' }]} // Make text black
-              placeholder="Search DAOs..."
-              placeholderTextColor="#6B7280" // Keep placeholder gray
-              value={search}
-              onChangeText={setSearch}
-              onSubmitEditing={handleSearch}
-              returnKeyType="search"
-            />
-          </View>
-
-          <View style={styles.privateContainer}>
-            <Icon name="link" size={20} color="#6B7280" style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchInput, { color: '#000000' }]} // Make text black
-              placeholder="Enter DAO address to join..."
-              placeholderTextColor="#6B7280" // Keep placeholder gray
-              value={privateAddress}
-              onChangeText={setPrivateAddress}
-            />
-            <TouchableOpacity
-              style={[styles.joinButton, !privateAddress && styles.joinButtonDisabled]}
-              onPress={handleJoinPrivate}
-              disabled={!privateAddress}
-            >
-              <Text style={styles.joinButtonText}>Join</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Filters */}
-        <View style={styles.filterContainer}>
-          {FILTERS.map(f => (
-            <TouchableOpacity
-              key={f}
-              onPress={() => handleFilterChange(f)}
-              style={[styles.filterButton, filter === f && styles.filterButtonActive]}
-            >
-              <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
-                {f}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Advanced Search Component */}
+        <AdvancedSearch
+          filters={searchFilters}
+          onFiltersChange={handleFiltersChange}
+          onSearch={handleSearch}
+          onPrivateKeySubmit={handlePrivateKeySubmit}
+          placeholder="Search Anises..."
+        />
 
         {/* Loading State */}
         {loading && page === 1 && !refreshing && (
